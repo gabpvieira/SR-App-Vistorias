@@ -1,0 +1,123 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* SR Caminhões Brand Colors */
+    --sr-red: 358 82% 50%;
+    --sr-red-hover: 358 82% 45%;
+    --sr-black: 60 5% 11%;
+    
+    /* Neutral Palette */
+    --background: 0 0% 100%;
+    --foreground: 60 5% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 60 5% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 60 5% 11%;
+
+    --primary: 358 82% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 60 5% 11%;
+
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 40%;
+
+    --accent: 0 0% 92%;
+    --accent-foreground: 60 5% 11%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 45 100% 51%;
+    --warning-foreground: 60 5% 11%;
+
+    --info: 188 78% 41%;
+    --info-foreground: 0 0% 100%;
+
+    --border: 0 0% 92%;
+    --input: 0 0% 92%;
+    --ring: 358 82% 50%;
+
+    --radius: 0.375rem;
+
+    /* Sidebar */
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 60 5% 11%;
+    --sidebar-primary: 358 82% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 96%;
+    --sidebar-accent-foreground: 60 5% 11%;
+    --sidebar-border: 0 0% 92%;
+    --sidebar-ring: 358 82% 50%;
+  }
+
+  .dark {
+    --background: 60 5% 11%;
+    --foreground: 0 0% 98%;
+
+    --card: 60 5% 14%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 60 5% 14%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 358 82% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 60 5% 18%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 60 5% 18%;
+    --muted-foreground: 0 0% 60%;
+
+    --accent: 60 5% 22%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 60 5% 22%;
+    --input: 60 5% 22%;
+    --ring: 358 82% 50%;
+
+    --sidebar-background: 60 5% 11%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 358 82% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 60 5% 18%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 60 5% 22%;
+    --sidebar-ring: 358 82% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  html {
+    font-family: 'Poppins', sans-serif;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
