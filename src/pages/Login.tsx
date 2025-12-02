@@ -137,18 +137,6 @@ export default function Login() {
               ← Voltar para a página inicial
             </Link>
           </p>
-
-          {/* Demo credentials hint */}
-          <div className="mt-8 p-4 bg-muted rounded-lg">
-            <p className="text-xs text-muted-foreground text-center mb-2 font-medium">
-              Credenciais de teste:
-            </p>
-            <div className="text-xs text-muted-foreground space-y-1">
-              <p><strong>Vendedor:</strong> joao@srcaminhoes.com.br</p>
-              <p><strong>Gerente:</strong> maria@srcaminhoes.com.br</p>
-              <p><strong>Senha:</strong> qualquer senha com 8+ caracteres</p>
-            </div>
-          </div>
         </div>
       </div>
     </>

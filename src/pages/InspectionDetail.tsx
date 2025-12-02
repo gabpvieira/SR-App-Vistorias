@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Header } from '@/components/Header';
 import { InspectionTypeBadge } from '@/components/InspectionTypeBadge';
 import { PhotoGallery } from '@/components/PhotoGallery';
+import { InspectionActivities } from '@/components/InspectionActivities';
+import { InspectionComments } from '@/components/InspectionComments';
 import { formatDateTime } from '@/lib/date-utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useInspections } from '@/contexts/InspectionContext';
@@ -272,7 +274,7 @@ export default function InspectionDetail() {
           </div>
 
           {/* Photos Card */}
-          <div className="bg-card border border-border rounded-lg p-6 animate-fade-in">
+          <div className="bg-card border border-border rounded-lg p-6 mb-6 animate-fade-in">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold flex items-center gap-2">
                 <Camera className="h-5 w-5 text-muted-foreground" />
@@ -295,6 +297,16 @@ export default function InspectionDetail() {
                 <p>Nenhuma foto cadastrada</p>
               </div>
             )}
+          </div>
+
+          {/* Activities Section */}
+          <div className="mb-6 animate-fade-in">
+            <InspectionActivities inspectionId={inspection.id} />
+          </div>
+
+          {/* Comments Section */}
+          <div className="animate-fade-in">
+            <InspectionComments inspectionId={inspection.id} />
           </div>
         </main>
       </div>

@@ -153,3 +153,124 @@ CREATE POLICY "Allow all operations on inspection_steps_template" ON inspection_
 -- Storage policies (allow all operations)
 -- CREATE POLICY "Allow all operations on inspection-photos" ON storage.objects
 --   FOR ALL USING (bucket_id = 'inspection-photos') WITH CHECK (bucket_id = 'inspection-photos');
+
+
+-- ============================================
+-- INSPECTION ACTIVITIES TABLE
+-- Permite adicionar novas atividades a uma vistoria existente
+-- ============================================
+CREATE TABLE IF NOT EXISTS inspection_activities (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  inspection_id UUID NOT NULL REFERENCES inspections(id) ON DELETE CASCADE,
+  type TEXT NOT NULL CHECK (type IN ('livre', 'guiada')),
+  vehicle_model TEXT CHECK (vehicle_model IN ('cavalo', 'rodotrem_basculante', 'rodotrem_graneleiro', 'livre')),
+  created_by UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes
+CREATE INDEX IF NOT EXISTS idx_inspection_activities_inspection_id ON inspection_activities(inspection_id);
+CREATE INDEX IF NOT EXISTS idx_inspection_activities_created_by ON inspection_activities(created_by);
+CREATE INDEX IF NOT EXISTS idx_inspection_activities_created_at ON inspection_activities(created_at DESC);
+
+-- ============================================
+-- INSPECTION ACTIVITY PHOTOS TABLE
+-- Fotos vinculadas a atividades adicionais
+-- ============================================
+CREATE TABLE IF NOT EXISTS inspection_activity_photos (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  activity_id UUID NOT NULL REFERENCES inspection_activities(id) ON DELETE CASCADE,
+  label TEXT NOT NULL,
+  step_order INTEGER,
+  photo_url TEXT NOT NULL,
+  thumbnail_url TEXT,
+  file_size INTEGER,
+  mime_type TEXT,
+  width INTEGER,
+  height INTEGER,
+  exif_data JSONB,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes
+CREATE INDEX IF NOT EXISTS idx_inspection_activity_photos_activity_id ON inspection_activity_photos(activity_id);
+CREATE INDEX IF NOT EXISTS idx_inspection_activity_photos_step_order ON inspection_activity_photos(step_order);
+
+-- ============================================
+-- INSPECTION COMMENTS TABLE
+-- Comentários colaborativos estilo Trello
+-- ============================================
+CREATE TABLE IF NOT EXISTS inspection_comments (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  inspection_id UUID NOT NULL REFERENCES inspections(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  content TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes
+CREATE INDEX IF NOT EXISTS idx_inspection_comments_inspection_id ON inspection_comments(inspection_id);
+CREATE INDEX IF NOT EXISTS idx_inspection_comments_user_id ON inspection_comments(user_id);
+CREATE INDEX IF NOT EXISTS idx_inspection_comments_created_at ON inspection_comments(created_at DESC);
+
+-- ============================================
+-- TRIGGERS FOR NEW TABLES
+-- ============================================
+
+-- Trigger para updated_at em inspection_activities
+DROP TRIGGER IF EXISTS update_inspection_activities_updated_at ON inspection_activities;
+CREATE TRIGGER update_inspection_activities_updated_at
+  BEFORE UPDATE ON inspection_activities
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+-- Trigger para updated_at em inspection_comments
+DROP TRIGGER IF EXISTS update_inspection_comments_updated_at ON inspection_comments;
+CREATE TRIGGER update_inspection_comments_updated_at
+  BEFORE UPDATE ON inspection_comments
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+-- ============================================
+-- RLS POLICIES FOR NEW TABLES
+-- ============================================
+
+-- Enable RLS
+ALTER TABLE inspection_activities ENABLE ROW LEVEL SECURITY;
+ALTER TABLE inspection_activity_photos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE inspection_comments ENABLE ROW LEVEL SECURITY;
+
+-- Policies: Allow all operations (seguindo o padrão das outras tabelas)
+CREATE POLICY "Allow all operations on inspection_activities" ON inspection_activities
+  FOR ALL USING (true) WITH CHECK (true);
+
+CREATE POLICY "Allow all operations on inspection_activity_photos" ON inspection_activity_photos
+  FOR ALL USING (true) WITH CHECK (true);
+
+CREATE POLICY "Allow all operations on inspection_comments" ON inspection_comments
+  FOR ALL USING (true) WITH CHECK (true);
+
+
+-- ============================================
+-- COMMENT LIKES TABLE
+-- Sistema de curtidas nos comentários
+-- ============================================
+CREATE TABLE IF NOT EXISTS inspection_comment_likes (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  comment_id UUID NOT NULL REFERENCES inspection_comments(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(comment_id, user_id)
+);
+
+-- Indexes
+CREATE INDEX IF NOT EXISTS idx_comment_likes_comment_id ON inspection_comment_likes(comment_id);
+CREATE INDEX IF NOT EXISTS idx_comment_likes_user_id ON inspection_comment_likes(user_id);
+
+-- RLS
+ALTER TABLE inspection_comment_likes ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow all operations on inspection_comment_likes" ON inspection_comment_likes
+  FOR ALL USING (true) WITH CHECK (true);

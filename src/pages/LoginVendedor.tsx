@@ -153,17 +153,6 @@ export default function LoginVendedor() {
               Acesso Gerente
             </Link>
           </div>
-
-          {/* Demo credentials */}
-          <div className="mt-8 p-4 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
-            <p className="text-xs text-slate-600 dark:text-slate-400 text-center mb-2 font-semibold">
-              Credenciais de teste:
-            </p>
-            <div className="text-xs text-slate-600 dark:text-slate-400 space-y-1">
-              <p><strong>E-mail:</strong> joao@srcaminhoes.com.br</p>
-              <p><strong>Senha:</strong> qualquer senha com 8+ caracteres</p>
-            </div>
-          </div>
         </div>
       </div>
     </>

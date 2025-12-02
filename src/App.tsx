@@ -15,7 +15,12 @@ import Dashboard from "./pages/Dashboard";
 import NewInspection from "./pages/NewInspection";
 import GuidedInspection from "./pages/GuidedInspection";
 import InspectionDetail from "./pages/InspectionDetail";
+import ActivityFreeInspection from "./pages/ActivityFreeInspection";
+import ActivityGuidedInspection from "./pages/ActivityGuidedInspection";
+import ActivityView from "./pages/ActivityView";
 import Profile from "./pages/Profile";
+import UserManagement from "./pages/UserManagement";
+import CreateUser from "./pages/CreateUser";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -67,10 +72,58 @@ const App = () => (
                   }
                 />
                 <Route
+                  path="/inspection/:id"
+                  element={
+                    <ProtectedRoute>
+                      <InspectionDetail />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/inspection-activity/:activityId/free"
+                  element={
+                    <ProtectedRoute>
+                      <ActivityFreeInspection />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/inspection-activity/:activityId/guided"
+                  element={
+                    <ProtectedRoute>
+                      <ActivityGuidedInspection />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/inspection-activity/:activityId/view"
+                  element={
+                    <ProtectedRoute>
+                      <ActivityView />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path="/perfil"
                   element={
                     <ProtectedRoute>
                       <Profile />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/usuarios"
+                  element={
+                    <ProtectedRoute>
+                      <UserManagement />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/usuarios/novo"
+                  element={
+                    <ProtectedRoute>
+                      <CreateUser />
                     </ProtectedRoute>
                   }
                 />

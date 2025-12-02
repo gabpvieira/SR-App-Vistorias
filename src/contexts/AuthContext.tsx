@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { User } from '@/lib/supabase';
-import { getUserByEmail } from '@/lib/supabase-queries';
+import { authenticateUser } from '@/lib/supabase-queries';
 
 interface AuthContextType {
   user: User | null;
@@ -19,25 +19,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(async (email: string, password: string) => {
     try {
-      // Buscar usuário no Supabase
-      const foundUser = await getUserByEmail(email.toLowerCase());
+      // Authenticate user with password hash verification
+      const authenticatedUser = await authenticateUser(email.toLowerCase(), password);
       
-      if (!foundUser) {
-        return { success: false, error: 'E-mail ou senha incorretos' };
-      }
+      // Create full user object with timestamps
+      const fullUser: User = {
+        ...authenticatedUser,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
 
-      // Mock password check (qualquer senha com 8+ chars funciona)
-      // Em produção, você implementaria hash de senha real
-      if (password.length < 8) {
-        return { success: false, error: 'E-mail ou senha incorretos' };
-      }
-
-      setUser(foundUser);
-      localStorage.setItem('sr-auth-user', JSON.stringify(foundUser));
+      setUser(fullUser);
+      localStorage.setItem('sr-auth-user', JSON.stringify(fullUser));
       return { success: true };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro no login:', error);
-      return { success: false, error: 'Erro ao conectar com o servidor' };
+      return { 
+        success: false, 
+        error: error.message === 'Invalid email or password' 
+          ? 'E-mail ou senha incorretos' 
+          : 'Erro ao conectar com o servidor' 
+      };
     }
   }, []);
 

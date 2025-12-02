@@ -49,7 +49,7 @@ export function InspectionCard({ inspection }: InspectionCardProps) {
 
   return (
     <Card className="overflow-hidden hover:border-primary/30 transition-colors animate-fade-in">
-      <div className="aspect-video relative overflow-hidden bg-muted">
+      <div className="aspect-[4/3] relative overflow-hidden bg-muted">
         {firstPhoto ? (
           <img
             src={firstPhoto}
