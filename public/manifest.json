@@ -1,19 +1,15 @@
 {
+  "id": "/",
   "name": "SR Vistorias - Sistema de Gerenciamento",
   "short_name": "SR Vistorias",
   "description": "Sistema completo para gerenciamento de vistorias veiculares da SR Caminhões",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#000000",
   "orientation": "portrait-primary",
   "icons": [
-    {
-      "src": "/favicon.png",
-      "sizes": "64x64",
-      "type": "image/png",
-      "purpose": "any"
-    },
     {
       "src": "/icon-192.png",
       "sizes": "192x192",
@@ -28,5 +24,12 @@
     }
   ],
   "categories": ["business", "productivity"],
-  "screenshots": []
+  "screenshots": [
+    {
+      "src": "/logo SR.png",
+      "sizes": "2000x2000",
+      "type": "image/png",
+      "form_factor": "wide"
+    }
+  ]
 }
