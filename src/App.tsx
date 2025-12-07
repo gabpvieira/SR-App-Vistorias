@@ -9,8 +9,6 @@ import { InspectionProvider } from "@/contexts/InspectionContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
-import LoginGerente from "./pages/LoginGerente";
-import LoginVendedor from "./pages/LoginVendedor";
 import Dashboard from "./pages/Dashboard";
 import NewInspection from "./pages/NewInspection";
 import GuidedInspection from "./pages/GuidedInspection";
@@ -21,6 +19,7 @@ import ActivityView from "./pages/ActivityView";
 import Profile from "./pages/Profile";
 import UserManagement from "./pages/UserManagement";
 import CreateUser from "./pages/CreateUser";
+import Performance from "./pages/Performance";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,8 +36,6 @@ const App = () => (
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/login" element={<Login />} />
-                <Route path="/login/gerente" element={<LoginGerente />} />
-                <Route path="/login/vendedor" element={<LoginVendedor />} />
                 <Route
                   path="/dashboard"
                   element={
@@ -124,6 +121,14 @@ const App = () => (
                   element={
                     <ProtectedRoute>
                       <CreateUser />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/desempenho"
+                  element={
+                    <ProtectedRoute>
+                      <Performance />
                     </ProtectedRoute>
                   }
                 />

@@ -31,7 +31,8 @@ export interface Inspection {
   vehicle_plate: string;
   vehicle_brand?: string;
   vehicle_model_name: string;
-  vehicle_year: number;
+  vehicle_year: number; // Ano de fabricação
+  vehicle_model_year?: number; // Ano do modelo
   vehicle_status: VehicleStatus;
   odometer?: number;
   notes?: string;

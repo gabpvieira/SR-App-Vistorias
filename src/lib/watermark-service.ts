@@ -121,23 +121,27 @@ export function prepareWatermarkData(location?: LocationData | null): WatermarkD
   const timestamp = new Date();
   const formattedText: string[] = [];
 
-  // Linha 1: Data e hora
-  formattedText.push(formatDateTime(timestamp));
+  // Linha única: Data/hora + Localização + Coordenadas
+  const parts: string[] = [];
+  
+  // Data e hora
+  parts.push(formatDateTime(timestamp));
 
-  // Linha 2: Localização (cidade, estado)
+  // Localização (cidade, estado)
   if (location) {
     const locationParts: string[] = [];
     if (location.city) locationParts.push(location.city);
     if (location.state) locationParts.push(location.state);
     if (locationParts.length > 0) {
-      formattedText.push(locationParts.join(', '));
+      parts.push(locationParts.join(', '));
     }
 
-    // Linha 3: Coordenadas
-    formattedText.push(formatCoordinates(location.latitude, location.longitude));
-  } else {
-    formattedText.push('Localização não disponível');
+    // Coordenadas
+    parts.push(formatCoordinates(location.latitude, location.longitude));
   }
+
+  // Juntar tudo em uma linha separada por " | "
+  formattedText.push(parts.join(' | '));
 
   return {
     timestamp,
@@ -172,44 +176,37 @@ export async function addWatermarkToImage(
         // Desenhar a imagem original
         ctx.drawImage(img, 0, 0);
 
-        // Configurar estilo da marca d'água
-        const fontSize = Math.max(Math.floor(img.width / 40), 14);
-        const padding = Math.floor(fontSize * 0.8);
-        const lineHeight = Math.floor(fontSize * 1.4);
+        // Configurar estilo da marca d'água - mais compacta
+        const fontSize = Math.max(Math.floor(img.width / 60), 12);
+        const padding = Math.floor(fontSize * 0.5);
 
         // Fundo semi-transparente
         const textLines = watermarkData.formattedText;
-        const maxWidth = Math.max(
-          ...textLines.map(line => {
-            ctx.font = `bold ${fontSize}px Arial`;
-            return ctx.measureText(line).width;
-          })
-        );
+        ctx.font = `bold ${fontSize}px Arial`;
+        const textWidth = ctx.measureText(textLines[0]).width;
 
-        const boxWidth = maxWidth + padding * 2;
-        const boxHeight = textLines.length * lineHeight + padding * 2;
+        const boxWidth = textWidth + padding * 2;
+        const boxHeight = fontSize + padding * 2;
         const x = img.width - boxWidth - padding;
         const y = padding;
 
-        // Desenhar fundo
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        // Desenhar fundo preto com baixa opacidade
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
         ctx.fillRect(x, y, boxWidth, boxHeight);
 
-        // Desenhar borda
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(x, y, boxWidth, boxHeight);
-
-        // Desenhar texto
-        ctx.fillStyle = '#FFFFFF';
+        // Desenhar texto com contorno (stroke)
         ctx.font = `bold ${fontSize}px Arial`;
         ctx.textAlign = 'left';
         ctx.textBaseline = 'top';
 
-        textLines.forEach((line, index) => {
-          const textY = y + padding + index * lineHeight;
-          ctx.fillText(line, x + padding, textY);
-        });
+        // Contorno preto no texto
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+        ctx.lineWidth = 3;
+        ctx.strokeText(textLines[0], x + padding, y + padding);
+
+        // Texto branco
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillText(textLines[0], x + padding, y + padding);
 
         // Converter canvas para blob
         canvas.toBlob(

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Camera, CheckCircle, Image as ImageIcon, Trash2 } from 'lucide-react';
+import { Plus, ClipboardList, CheckCircle, Image as ImageIcon, Trash2, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getActivitiesByInspectionId, getActivityPhotos, createInspectionActivity, getInspectionById, deleteInspectionActivity, InspectionActivity, InspectionActivityPhoto } from '../lib/supabase-queries';
 import { useAuth } from '../contexts/AuthContext';
@@ -129,8 +129,8 @@ export function InspectionActivities({ inspectionId }: InspectionActivitiesProps
     <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
         <div className="flex items-center gap-2">
-          <Camera className="w-5 h-5 text-red-600" />
-          <h3 className="text-lg font-semibold text-gray-900">Atividades Adicionais</h3>
+          <ClipboardList className="w-5 h-5 text-red-600" />
+          <h3 className="text-lg font-semibold text-gray-900">Registros da Vistoria</h3>
           <span className="text-sm text-gray-500">({activities.length})</span>
         </div>
         <button
@@ -210,13 +210,27 @@ export function InspectionActivities({ inspectionId }: InspectionActivitiesProps
           <p className="text-gray-500 text-center py-4">Carregando atividades...</p>
         ) : activities.length === 0 ? (
           <p className="text-gray-500 text-center py-4">
-            Nenhuma atividade adicional. Clique em "Nova Atividade" para adicionar.
+            Nenhum registro adicional. Clique em "Nova Atividade" para adicionar.
           </p>
         ) : (
           activities.map((activity) => (
-            <div key={activity.id} className="border border-gray-200 rounded-lg p-3 sm:p-4 hover:border-red-300 transition-colors">
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                <div className="flex-1 min-w-0">
+            <div key={activity.id} className="border border-gray-200 rounded-lg overflow-hidden hover:border-red-300 transition-colors">
+              <div className="flex flex-col sm:flex-row gap-3">
+                {/* Capa da primeira foto */}
+                {activity.photos.length > 0 && (
+                  <div className="sm:w-48 flex-shrink-0 p-3 sm:p-4 flex items-center justify-center">
+                    <div className="aspect-[4/3] bg-gray-100 rounded-lg overflow-hidden w-full">
+                      <img
+                        src={activity.photos[0].photo_url}
+                        alt="Capa da atividade"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Conteúdo */}
+                <div className="flex-1 p-3 sm:p-4 min-w-0">
                   <div className="flex flex-wrap items-center gap-2 mb-2">
                     <span className={`px-2 py-1 rounded text-xs font-medium ${
                       activity.type === 'guiada' 
@@ -231,31 +245,41 @@ export function InspectionActivities({ inspectionId }: InspectionActivitiesProps
                       </span>
                     )}
                   </div>
-                  <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm text-gray-600">
+
+                  {/* Observações */}
+                  {activity.notes && (
+                    <p className="text-sm text-gray-700 mb-2 line-clamp-2">
+                      {activity.notes}
+                    </p>
+                  )}
+
+                  <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm text-gray-600 mb-3">
                     <span className="flex items-center gap-1">
                       <ImageIcon className="w-3 h-3 sm:w-4 sm:h-4" />
                       {activity.photos.length} {activity.photos.length === 1 ? 'foto' : 'fotos'}
                     </span>
                     <span>{formatDate(activity.created_at)}</span>
                   </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => navigate(`/inspection-activity/${activity.id}/view`)}
-                    className="px-3 py-1 text-xs sm:text-sm text-red-600 hover:bg-red-50 rounded-lg whitespace-nowrap"
-                  >
-                    Ver Detalhes
-                  </button>
-                  {user && (user.id === activity.created_by || user.role === 'gerente') && (
+
+                  <div className="flex items-center gap-2">
                     <button
-                      onClick={() => handleDeleteActivity(activity.id)}
-                      disabled={deletingId === activity.id}
-                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg disabled:opacity-50"
-                      title="Excluir atividade"
+                      onClick={() => navigate(`/inspection-activity/${activity.id}/view`)}
+                      className="flex items-center gap-1 px-3 py-1.5 text-xs sm:text-sm text-red-600 hover:bg-red-50 rounded-lg whitespace-nowrap"
                     >
-                      <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
+                      <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
+                      Ver Detalhes
                     </button>
-                  )}
+                    {user && (user.id === activity.created_by || user.role === 'gerente') && (
+                      <button
+                        onClick={() => handleDeleteActivity(activity.id)}
+                        disabled={deletingId === activity.id}
+                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg disabled:opacity-50"
+                        title="Excluir atividade"
+                      >
+                        <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

@@ -340,5 +340,91 @@ export class PhotoService {
   }
 }
 
+/**
+ * Apply watermark to photo
+ * Requirements: 9.1
+ * 
+ * @param file - The photo file
+ * @param text - The watermark text (e.g., vehicle plate)
+ * @returns Promise with watermarked file
+ */
+export async function applyWatermark(
+  file: File,
+  text: string
+): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    
+    reader.onerror = () => reject(new Error('Erro ao ler arquivo para marca d\'água'));
+    
+    reader.onload = (e) => {
+      const img = new Image();
+      
+      img.onerror = () => reject(new Error('Erro ao carregar imagem para marca d\'água'));
+      
+      img.onload = () => {
+        // Create canvas
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        if (!ctx) {
+          reject(new Error('Erro ao criar contexto de canvas'));
+          return;
+        }
+
+        // Set canvas size to image size
+        canvas.width = img.width;
+        canvas.height = img.height;
+        
+        // Draw original image
+        ctx.drawImage(img, 0, 0);
+        
+        // Configure watermark style
+        const fontSize = Math.max(20, Math.floor(img.width / 30));
+        ctx.font = `bold ${fontSize}px Arial`;
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.lineWidth = 2;
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'bottom';
+        
+        // Position watermark at bottom right with padding
+        const padding = 20;
+        const x = canvas.width - padding;
+        const y = canvas.height - padding;
+        
+        // Draw watermark with stroke (outline) and fill
+        ctx.strokeText(text, x, y);
+        ctx.fillText(text, x, y);
+        
+        // Convert canvas to blob
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              reject(new Error('Erro ao aplicar marca d\'água'));
+              return;
+            }
+            
+            // Create new file from blob
+            const watermarkedFile = new File(
+              [blob],
+              file.name,
+              { type: 'image/jpeg', lastModified: Date.now() }
+            );
+            
+            resolve(watermarkedFile);
+          },
+          'image/jpeg',
+          0.95 // High quality
+        );
+      };
+      
+      img.src = e.target?.result as string;
+    };
+    
+    reader.readAsDataURL(file);
+  });
+}
+
 // Export singleton instance
 export const photoService = new PhotoService();

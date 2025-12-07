@@ -6,12 +6,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Header } from '@/components/Header';
 import { VehicleModelSelector } from '@/components/VehicleModelSelector';
 import { useInspections } from '@/contexts/InspectionContext';
 import { useToast } from '@/hooks/use-toast';
+import { useWatermark } from '@/hooks/use-watermark';
 import { Helmet } from 'react-helmet-async';
 import { VehicleModel } from '@/types';
+import { uploadAndSaveInspectionPhoto } from '@/lib/supabase-queries';
 
 // Placeholder images for demo
 const demoPhotos = [
@@ -25,28 +28,31 @@ export default function NewInspection() {
   const [vehicleModel, setVehicleModel] = useState<VehicleModel | null>(null);
   const [plate, setPlate] = useState('');
   const [modelName, setModelName] = useState('');
+  const [fabricationYear, setFabricationYear] = useState('');
   const [modelYear, setModelYear] = useState('');
   const [vehicleStatus, setVehicleStatus] = useState<'novo' | 'seminovo' | ''>('');
   const [observations, setObservations] = useState('');
-  const [photos, setPhotos] = useState<string[]>([]);
+  const [photos, setPhotos] = useState<File[]>([]);
+  const [photoPreviewUrls, setPhotoPreviewUrls] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { addInspection } = useInspections();
   const { toast } = useToast();
+  const { addWatermark, requestPermission, isLocationEnabled } = useWatermark({ autoRequestPermission: false });
   const navigate = useNavigate();
 
   // Cleanup object URLs on unmount
   useEffect(() => {
     return () => {
-      photos.forEach(photo => {
-        if (photo.startsWith('blob:')) {
-          URL.revokeObjectURL(photo);
+      photoPreviewUrls.forEach(url => {
+        if (url.startsWith('blob:')) {
+          URL.revokeObjectURL(url);
         }
       });
     };
-  }, [photos]);
+  }, [photoPreviewUrls]);
 
   const formatPlate = (value: string) => {
     const cleaned = value.toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -75,10 +81,14 @@ export default function NewInspection() {
     const files = e.target.files;
     if (!files) return;
 
-    // Create preview URLs for selected files
-    const newPhotos = Array.from(files).map(file => URL.createObjectURL(file));
+    const filesArray = Array.from(files);
     
-    setPhotos(prev => [...prev, ...newPhotos]);
+    // Store actual File objects
+    setPhotos(prev => [...prev, ...filesArray]);
+    
+    // Create preview URLs
+    const newPreviewUrls = filesArray.map(file => URL.createObjectURL(file));
+    setPhotoPreviewUrls(prev => [...prev, ...newPreviewUrls]);
     
     if (errors.photos) {
       setErrors(prev => ({ ...prev, photos: '' }));
@@ -91,11 +101,14 @@ export default function NewInspection() {
   };
 
   const removePhoto = (index: number) => {
-    setPhotos(prev => {
-      const photoToRemove = prev[index];
-      // Revoke object URL to free memory
-      if (photoToRemove.startsWith('blob:')) {
-        URL.revokeObjectURL(photoToRemove);
+    // Remove from photos array
+    setPhotos(prev => prev.filter((_, i) => i !== index));
+    
+    // Remove from preview URLs and revoke object URL
+    setPhotoPreviewUrls(prev => {
+      const urlToRemove = prev[index];
+      if (urlToRemove.startsWith('blob:')) {
+        URL.revokeObjectURL(urlToRemove);
       }
       return prev.filter((_, i) => i !== index);
     });
@@ -123,14 +136,18 @@ export default function NewInspection() {
       newErrors.modelName = 'Informe o modelo do veículo';
     }
 
+    if (!fabricationYear) {
+      newErrors.fabricationYear = 'Informe o ano de fabricação';
+    } else {
+      const year = parseInt(fabricationYear);
+      const currentYear = new Date().getFullYear();
+      if (year < 2000 || year > currentYear) {
+        newErrors.fabricationYear = `Ano deve estar entre 2000 e ${currentYear}`;
+      }
+    }
+
     if (!modelYear) {
       newErrors.modelYear = 'Informe o ano do modelo';
-    } else {
-      const year = parseInt(modelYear);
-      const currentYear = new Date().getFullYear();
-      if (year < 2000 || year > currentYear + 1) {
-        newErrors.modelYear = `Ano deve estar entre 2000 e ${currentYear + 1}`;
-      }
     }
 
     if (!vehicleStatus) {
@@ -158,6 +175,7 @@ export default function NewInspection() {
         model: vehicleModel,
         plate: plate,
         modelName: modelName.toUpperCase(),
+        fabricationYear: fabricationYear,
         modelYear: modelYear,
         vehicleStatus: vehicleStatus as string,
       });
@@ -167,25 +185,55 @@ export default function NewInspection() {
 
     setIsSubmitting(true);
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      // Criar a vistoria
+      const inspection = await addInspection({
+        user_id: '', // Será preenchido pelo contexto
+        vehicle_plate: plate,
+        type: type as 'troca' | 'manutencao',
+        vehicle_model_name: modelName.toUpperCase(),
+        vehicle_year: parseInt(fabricationYear),
+        vehicle_model_year: parseInt(modelYear),
+        vehicle_status: vehicleStatus as 'novo' | 'seminovo',
+        notes: observations || undefined,
+        is_guided_inspection: false,
+        guided_photos_complete: false,
+        status: 'rascunho',
+      });
 
-    addInspection({
-      plate,
-      type: type as 'troca' | 'manutencao',
-      vehicle_model_name: modelName.toUpperCase(),
-      vehicle_year: parseInt(modelYear),
-      vehicle_status: vehicleStatus as 'novo' | 'seminovo',
-      observations: observations || undefined,
-      photos,
-    });
+      // Upload das fotos com marca d'água
+      if (photos.length > 0) {
+        for (let i = 0; i < photos.length; i++) {
+          const file = photos[i];
+          
+          // Aplicar marca d'água (data/hora + localização + coordenadas)
+          const watermarkedFile = await addWatermark(file);
+          
+          // Upload da foto
+          await uploadAndSaveInspectionPhoto(
+            inspection.id,
+            watermarkedFile,
+            `Foto ${i + 1}`,
+            i + 1
+          );
+        }
+      }
 
-    toast({
-      title: 'Vistoria cadastrada!',
-      description: `Vistoria da placa ${plate} registrada com sucesso.`,
-    });
+      toast({
+        title: 'Vistoria cadastrada!',
+        description: `Vistoria da placa ${plate} registrada com sucesso.`,
+      });
 
-    navigate('/dashboard');
+      navigate('/dashboard');
+    } catch (error) {
+      console.error('Erro ao salvar vistoria:', error);
+      toast({
+        title: 'Erro ao salvar',
+        description: 'Não foi possível salvar a vistoria. Tente novamente.',
+        variant: 'destructive',
+      });
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -212,35 +260,46 @@ export default function NewInspection() {
 
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Type */}
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <Label className={errors.type ? 'text-destructive' : ''}>
                   Tipo de Vistoria *
                 </Label>
-                <RadioGroup
-                  value={type}
-                  onValueChange={(v) => {
-                    setType(v as typeof type);
-                    // Reset vehicle model when changing type
-                    if (v !== 'troca') {
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setType('troca');
+                      if (errors.type) setErrors(prev => ({ ...prev, type: '' }));
+                    }}
+                    className={`h-11 px-4 rounded-md border-2 font-medium transition-all ${
+                      type === 'troca'
+                        ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+                        : 'border-input bg-background hover:bg-accent hover:text-accent-foreground'
+                    }`}
+                  >
+                    Troca
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setType('manutencao');
                       setVehicleModel(null);
-                    }
-                    if (errors.type) setErrors(prev => ({ ...prev, type: '' }));
-                  }}
-                  className="flex gap-4"
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="troca" id="troca" />
-                    <Label htmlFor="troca" className="cursor-pointer font-normal">
-                      Troca
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="manutencao" id="manutencao" />
-                    <Label htmlFor="manutencao" className="cursor-pointer font-normal">
-                      Manutenção
-                    </Label>
-                  </div>
-                </RadioGroup>
+                      if (errors.type) setErrors(prev => ({ ...prev, type: '' }));
+                      
+                      // Solicitar permissão de localização para marca d'água
+                      if (!isLocationEnabled) {
+                        await requestPermission();
+                      }
+                    }}
+                    className={`h-11 px-4 rounded-md border-2 font-medium transition-all ${
+                      type === 'manutencao'
+                        ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+                        : 'border-input bg-background hover:bg-accent hover:text-accent-foreground'
+                    }`}
+                  >
+                    Manutenção
+                  </button>
+                </div>
                 {errors.type && (
                   <p className="text-sm text-destructive">{errors.type}</p>
                 )}
@@ -347,59 +406,112 @@ export default function NewInspection() {
                 )}
               </div>
 
+              {/* Fabrication Year */}
+              <div className="space-y-2">
+                <Label htmlFor="fabricationYear" className={errors.fabricationYear ? 'text-destructive' : ''}>
+                  Ano de Fabricação *
+                </Label>
+                <Input
+                  id="fabricationYear"
+                  type="number"
+                  placeholder="2024"
+                  value={fabricationYear}
+                  onChange={(e) => {
+                    const year = e.target.value;
+                    setFabricationYear(year);
+                    // Auto-set model year to fabrication year when changed
+                    if (year && !modelYear) {
+                      setModelYear(year);
+                    }
+                    if (errors.fabricationYear) {
+                      setErrors(prev => ({ ...prev, fabricationYear: '' }));
+                    }
+                  }}
+                  min={2000}
+                  max={new Date().getFullYear()}
+                  className={errors.fabricationYear ? 'border-destructive' : ''}
+                />
+                {errors.fabricationYear && (
+                  <p className="text-sm text-destructive">{errors.fabricationYear}</p>
+                )}
+              </div>
+
               {/* Model Year */}
               <div className="space-y-2">
                 <Label htmlFor="modelYear" className={errors.modelYear ? 'text-destructive' : ''}>
                   Ano do Modelo *
                 </Label>
-                <Input
-                  id="modelYear"
-                  type="number"
-                  placeholder="2023"
+                <Select
                   value={modelYear}
-                  onChange={(e) => {
-                    setModelYear(e.target.value);
+                  onValueChange={(value) => {
+                    setModelYear(value);
                     if (errors.modelYear) {
                       setErrors(prev => ({ ...prev, modelYear: '' }));
                     }
                   }}
-                  min={2000}
-                  max={new Date().getFullYear() + 1}
-                  className={errors.modelYear ? 'border-destructive' : ''}
-                />
+                  disabled={!fabricationYear}
+                >
+                  <SelectTrigger className={`h-11 ${errors.modelYear ? 'border-destructive' : ''}`}>
+                    <SelectValue placeholder="Selecione o ano do modelo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {fabricationYear && (
+                      <>
+                        <SelectItem value={fabricationYear}>{fabricationYear}</SelectItem>
+                        <SelectItem value={String(parseInt(fabricationYear) + 1)}>
+                          {parseInt(fabricationYear) + 1}
+                        </SelectItem>
+                      </>
+                    )}
+                  </SelectContent>
+                </Select>
+                {!fabricationYear && (
+                  <p className="text-xs text-muted-foreground">Selecione primeiro o ano de fabricação</p>
+                )}
                 {errors.modelYear && (
                   <p className="text-sm text-destructive">{errors.modelYear}</p>
                 )}
               </div>
 
               {/* Vehicle Status */}
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <Label className={errors.vehicleStatus ? 'text-destructive' : ''}>
                   Status do Veículo *
                 </Label>
-                <RadioGroup
-                  value={vehicleStatus}
-                  onValueChange={(v) => {
-                    setVehicleStatus(v as typeof vehicleStatus);
-                    if (errors.vehicleStatus) {
-                      setErrors(prev => ({ ...prev, vehicleStatus: '' }));
-                    }
-                  }}
-                  className="flex gap-4"
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="novo" id="novo" />
-                    <Label htmlFor="novo" className="cursor-pointer font-normal">
-                      Novo
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="seminovo" id="seminovo" />
-                    <Label htmlFor="seminovo" className="cursor-pointer font-normal">
-                      Seminovo
-                    </Label>
-                  </div>
-                </RadioGroup>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setVehicleStatus('novo');
+                      if (errors.vehicleStatus) {
+                        setErrors(prev => ({ ...prev, vehicleStatus: '' }));
+                      }
+                    }}
+                    className={`h-11 px-4 rounded-md border-2 font-medium transition-all ${
+                      vehicleStatus === 'novo'
+                        ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+                        : 'border-input bg-background hover:bg-accent hover:text-accent-foreground'
+                    }`}
+                  >
+                    Novo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setVehicleStatus('seminovo');
+                      if (errors.vehicleStatus) {
+                        setErrors(prev => ({ ...prev, vehicleStatus: '' }));
+                      }
+                    }}
+                    className={`h-11 px-4 rounded-md border-2 font-medium transition-all ${
+                      vehicleStatus === 'seminovo'
+                        ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+                        : 'border-input bg-background hover:bg-accent hover:text-accent-foreground'
+                    }`}
+                  >
+                    Seminovo
+                  </button>
+                </div>
                 {errors.vehicleStatus && (
                   <p className="text-sm text-destructive">{errors.vehicleStatus}</p>
                 )}
@@ -469,12 +581,12 @@ export default function NewInspection() {
                 )}
 
                 {/* Photo previews */}
-                {photos.length > 0 && (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mt-4">
-                    {photos.map((photo, index) => (
-                      <div key={index} className="relative aspect-square">
+                {photoPreviewUrls.length > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4">
+                    {photoPreviewUrls.map((url, index) => (
+                      <div key={index} className="relative aspect-[4/3]">
                         <img
-                          src={photo}
+                          src={url}
                           alt={`Foto ${index + 1}`}
                           className="w-full h-full object-cover rounded-lg"
                         />

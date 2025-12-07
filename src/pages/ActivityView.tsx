@@ -210,6 +210,14 @@ export default function ActivityView() {
             </div>
           </div>
 
+          {/* Observações */}
+          {activity.notes && (
+            <div className="bg-card border border-border rounded-lg p-6 mb-6">
+              <h2 className="font-semibold mb-3">Observações do Registro</h2>
+              <p className="text-foreground whitespace-pre-wrap">{activity.notes}</p>
+            </div>
+          )}
+
           {/* Photos */}
           <div className="bg-card border border-border rounded-lg p-6">
             <h2 className="font-semibold flex items-center gap-2 mb-4">

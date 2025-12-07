@@ -252,7 +252,7 @@ export default function InspectionDetail() {
                 <FileText className="h-5 w-5 text-muted-foreground mt-0.5" />
                 <div>
                   <p className="text-sm text-muted-foreground">Modelo</p>
-                  <p className="font-medium uppercase">{inspection.vehicle_model_name}</p>
+                  <p className="font-medium uppercase">{inspection.vehicle_model_name || 'Não informado'}</p>
                 </div>
               </div>
 
@@ -260,7 +260,12 @@ export default function InspectionDetail() {
                 <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
                 <div>
                   <p className="text-sm text-muted-foreground">Ano / Status</p>
-                  <p className="font-medium">{inspection.vehicle_year} • {inspection.vehicle_status === 'novo' ? 'Novo' : 'Seminovo'}</p>
+                  <p className="font-medium">
+                    {inspection.vehicle_year && inspection.vehicle_model_year 
+                      ? `${inspection.vehicle_year}/${inspection.vehicle_model_year}`
+                      : inspection.vehicle_year || 'Não informado'
+                    } • {inspection.vehicle_status === 'novo' ? 'Novo' : 'Seminovo'}
+                  </p>
                 </div>
               </div>
             </div>

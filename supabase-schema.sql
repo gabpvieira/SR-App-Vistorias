@@ -35,7 +35,8 @@ CREATE TABLE IF NOT EXISTS inspections (
   vehicle_plate TEXT NOT NULL,
   vehicle_brand TEXT,
   vehicle_model_name TEXT NOT NULL,
-  vehicle_year INTEGER NOT NULL,
+  vehicle_year INTEGER NOT NULL, -- Ano de fabricação
+  vehicle_model_year INTEGER, -- Ano do modelo (pode ser igual ao ano de fabricação ou ano seguinte)
   vehicle_status TEXT NOT NULL CHECK (vehicle_status IN ('novo', 'seminovo')),
   odometer INTEGER,
   notes TEXT,

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Camera, Upload, Check, Loader2 } from 'lucide-react';
+import { ArrowLeft, Camera, Upload, Check, Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Header } from '@/components/Header';
 import { Progress } from '@/components/ui/progress';
@@ -12,12 +12,18 @@ import { uploadAndSaveInspectionPhoto } from '@/lib/supabase-queries';
 import { InspectionStepTemplate, VehicleModel } from '@/lib/supabase';
 import { Helmet } from 'react-helmet-async';
 import { useToast } from '@/hooks/use-toast';
+import { useWatermark } from '@/hooks/use-watermark';
 
 interface CapturedPhoto {
   stepId: string;
   file: File;
   previewUrl: string;
   uploaded: boolean;
+}
+
+interface MultiplePhotosStep {
+  stepId: string;
+  photos: CapturedPhoto[];
 }
 
 export default function GuidedInspection() {
@@ -30,16 +36,20 @@ export default function GuidedInspection() {
   const vehicleModel = searchParams.get('model') as VehicleModel;
   const vehiclePlate = searchParams.get('plate') || '';
   const modelName = searchParams.get('modelName') || '';
+  const fabricationYear = searchParams.get('fabricationYear') || '';
   const modelYear = searchParams.get('modelYear') || '';
   const vehicleStatus = searchParams.get('vehicleStatus') as 'novo' | 'seminovo' || 'seminovo';
 
   const [steps, setSteps] = useState<InspectionStepTemplate[]>([]);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [photos, setPhotos] = useState<Map<string, CapturedPhoto>>(new Map());
+  const [multiplePhotos, setMultiplePhotos] = useState<Map<string, CapturedPhoto[]>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
-  const [isUploading, setIsUploading] = useState(false);
+  const [isProcessingGallery, setIsProcessingGallery] = useState(false);
   const [isFinalizing, setIsFinalizing] = useState(false);
   const [showCameraModal, setShowCameraModal] = useState(false);
+
+  const { addWatermark } = useWatermark({ autoRequestPermission: true });
 
   useEffect(() => {
     async function loadSteps() {
@@ -70,7 +80,14 @@ export default function GuidedInspection() {
   const currentStep = steps[currentStepIndex];
   const progress = steps.length > 0 ? ((currentStepIndex + 1) / steps.length) * 100 : 0;
   const isLastStep = currentStepIndex === steps.length - 1;
+  
+  // Verificar se a etapa atual permite múltiplas fotos
+  const isMultiplePhotosStep = currentStep?.label?.toLowerCase().includes('pneus') || 
+                                currentStep?.label?.toLowerCase().includes('minimo');
+  
   const currentPhoto = currentStep ? photos.get(currentStep.id) : null;
+  const currentMultiplePhotos = currentStep ? multiplePhotos.get(currentStep.id) || [] : [];
+  const hasPhotos = isMultiplePhotosStep ? currentMultiplePhotos.length > 0 : !!currentPhoto;
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -96,15 +113,70 @@ export default function GuidedInspection() {
       return;
     }
 
-    const previewUrl = URL.createObjectURL(file);
-    const newPhotos = new Map(photos);
-    newPhotos.set(currentStep.id, {
-      stepId: currentStep.id,
-      file,
-      previewUrl,
-      uploaded: false,
-    });
-    setPhotos(newPhotos);
+    setIsProcessingGallery(true);
+
+    try {
+      // Adicionar marca d'água na foto da galeria
+      const watermarkedFile = await addWatermark(file);
+      const previewUrl = URL.createObjectURL(watermarkedFile);
+      
+      if (isMultiplePhotosStep) {
+        // Etapa com múltiplas fotos
+        const currentPhotos = multiplePhotos.get(currentStep.id) || [];
+        
+        // Limite de 10 fotos
+        if (currentPhotos.length >= 10) {
+          toast({
+            title: 'Limite atingido',
+            description: 'Máximo de 10 fotos por etapa',
+            variant: 'destructive',
+          });
+          setIsProcessingGallery(false);
+          return;
+        }
+        
+        const newMultiplePhotos = new Map(multiplePhotos);
+        newMultiplePhotos.set(currentStep.id, [
+          ...currentPhotos,
+          {
+            stepId: currentStep.id,
+            file: watermarkedFile,
+            previewUrl,
+            uploaded: false,
+          }
+        ]);
+        setMultiplePhotos(newMultiplePhotos);
+        
+        toast({
+          title: 'Foto adicionada',
+          description: `${currentPhotos.length + 1} foto(s) adicionada(s)`,
+        });
+      } else {
+        // Etapa com foto única
+        const newPhotos = new Map(photos);
+        newPhotos.set(currentStep.id, {
+          stepId: currentStep.id,
+          file: watermarkedFile,
+          previewUrl,
+          uploaded: false,
+        });
+        setPhotos(newPhotos);
+
+        toast({
+          title: 'Foto adicionada',
+          description: 'Foto processada com marca d\'água',
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao processar foto:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível processar a foto',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsProcessingGallery(false);
+    }
   };
 
   const handleCameraCapture = () => {
@@ -115,29 +187,66 @@ export default function GuidedInspection() {
     if (!currentStep) return;
 
     const previewUrl = URL.createObjectURL(file);
-    const newPhotos = new Map(photos);
-    newPhotos.set(currentStep.id, {
-      stepId: currentStep.id,
-      file,
-      previewUrl,
-      uploaded: false,
-    });
-    setPhotos(newPhotos);
-
-    toast({
-      title: 'Foto capturada',
-      description: 'Foto adicionada com marca d\'água',
-    });
+    
+    if (isMultiplePhotosStep) {
+      // Etapa com múltiplas fotos
+      const currentPhotos = multiplePhotos.get(currentStep.id) || [];
+      
+      // Limite de 10 fotos
+      if (currentPhotos.length >= 10) {
+        toast({
+          title: 'Limite atingido',
+          description: 'Máximo de 10 fotos por etapa',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
+      const newMultiplePhotos = new Map(multiplePhotos);
+      newMultiplePhotos.set(currentStep.id, [
+        ...currentPhotos,
+        {
+          stepId: currentStep.id,
+          file,
+          previewUrl,
+          uploaded: false,
+        }
+      ]);
+      setMultiplePhotos(newMultiplePhotos);
+    } else {
+      // Etapa com foto única
+      const newPhotos = new Map(photos);
+      newPhotos.set(currentStep.id, {
+        stepId: currentStep.id,
+        file,
+        previewUrl,
+        uploaded: false,
+      });
+      setPhotos(newPhotos);
+    }
   };
 
   const handleNext = () => {
-    if (!currentPhoto) {
-      toast({
-        title: 'Foto obrigatória',
-        description: 'Tire ou selecione uma foto antes de continuar.',
-        variant: 'destructive',
-      });
-      return;
+    // Validar se tem fotos
+    if (isMultiplePhotosStep) {
+      const minPhotos = 4;
+      if (currentMultiplePhotos.length < minPhotos) {
+        toast({
+          title: 'Fotos insuficientes',
+          description: `Adicione pelo menos ${minPhotos} fotos antes de continuar.`,
+          variant: 'destructive',
+        });
+        return;
+      }
+    } else {
+      if (!currentPhoto) {
+        toast({
+          title: 'Foto obrigatória',
+          description: 'Tire ou selecione uma foto antes de continuar.',
+          variant: 'destructive',
+        });
+        return;
+      }
     }
 
     if (isLastStep) {
@@ -153,11 +262,47 @@ export default function GuidedInspection() {
     }
   };
 
+  const handleRemovePhoto = (index: number) => {
+    if (!currentStep) return;
+
+    if (isMultiplePhotosStep) {
+      const currentPhotos = multiplePhotos.get(currentStep.id) || [];
+      const photoToRemove = currentPhotos[index];
+      
+      // Revogar URL do preview
+      if (photoToRemove.previewUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(photoToRemove.previewUrl);
+      }
+      
+      // Remover foto do array
+      const newPhotos = currentPhotos.filter((_, i) => i !== index);
+      const newMultiplePhotos = new Map(multiplePhotos);
+      
+      if (newPhotos.length === 0) {
+        newMultiplePhotos.delete(currentStep.id);
+      } else {
+        newMultiplePhotos.set(currentStep.id, newPhotos);
+      }
+      
+      setMultiplePhotos(newMultiplePhotos);
+      
+      toast({
+        title: 'Foto removida',
+        description: `${newPhotos.length} foto(s) restante(s)`,
+      });
+    }
+  };
+
   const handleFinalize = async () => {
     if (!user) return;
 
-    // Check if all steps have photos
-    const missingSteps = steps.filter(step => !photos.has(step.id));
+    // Check if all steps have photos (considerando etapas com múltiplas fotos)
+    const missingSteps = steps.filter(step => {
+      const hasMultiplePhotos = multiplePhotos.has(step.id) && multiplePhotos.get(step.id)!.length >= 4;
+      const hasSinglePhoto = photos.has(step.id);
+      return !hasMultiplePhotos && !hasSinglePhoto;
+    });
+    
     if (missingSteps.length > 0) {
       toast({
         title: 'Vistoria incompleta',
@@ -177,7 +322,8 @@ export default function GuidedInspection() {
         vehicle_model: vehicleModel,
         vehicle_plate: vehiclePlate,
         vehicle_model_name: modelName,
-        vehicle_year: parseInt(modelYear),
+        vehicle_year: parseInt(fabricationYear),
+        vehicle_model_year: parseInt(modelYear),
         vehicle_status: vehicleStatus,
         is_guided_inspection: true,
         guided_photos_complete: true,
@@ -185,8 +331,8 @@ export default function GuidedInspection() {
         completed_at: new Date().toISOString(),
       });
 
-      // Upload all photos
-      const uploadPromises = Array.from(photos.values()).map(async (photo, index) => {
+      // Upload all single photos
+      const singlePhotoPromises = Array.from(photos.values()).map(async (photo) => {
         const step = steps.find(s => s.id === photo.stepId);
         if (!step) return;
 
@@ -198,7 +344,25 @@ export default function GuidedInspection() {
         );
       });
 
-      await Promise.all(uploadPromises);
+      // Upload all multiple photos
+      const multiplePhotoPromises: Promise<any>[] = [];
+      multiplePhotos.forEach((photosList, stepId) => {
+        const step = steps.find(s => s.id === stepId);
+        if (!step) return;
+
+        photosList.forEach((photo, index) => {
+          multiplePhotoPromises.push(
+            uploadAndSaveInspectionPhoto(
+              inspection.id,
+              photo.file,
+              `${step.label} - Foto ${index + 1}`,
+              step.step_order
+            )
+          );
+        });
+      });
+
+      await Promise.all([...singlePhotoPromises, ...multiplePhotoPromises]);
 
       toast({
         title: 'Vistoria concluída!',
@@ -274,23 +438,73 @@ export default function GuidedInspection() {
               <p className="text-muted-foreground">{currentStep.instruction}</p>
             </div>
 
-            {/* Photo Preview or Placeholder */}
-            <div className="aspect-video bg-muted rounded-lg mb-6 overflow-hidden flex items-center justify-center">
-              {currentPhoto ? (
-                <img
-                  src={currentPhoto.previewUrl}
-                  alt={currentStep.label}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="text-center">
-                  <Camera className="h-16 w-16 mx-auto mb-2 text-muted-foreground opacity-50" />
-                  <p className="text-sm text-muted-foreground">
-                    Nenhuma foto capturada
-                  </p>
-                </div>
-              )}
-            </div>
+            {/* Photo Preview or Placeholder - 4:3 aspect ratio */}
+            {isMultiplePhotosStep ? (
+              // Múltiplas fotos
+              <div className="mb-6">
+                {currentMultiplePhotos.length > 0 ? (
+                  <div className="grid grid-cols-2 gap-3 mb-4">
+                    {currentMultiplePhotos.map((photo, index) => (
+                      <div key={index} className="relative aspect-[4/3] bg-muted rounded-lg overflow-hidden">
+                        <img
+                          src={photo.previewUrl}
+                          alt={`${currentStep.label} - Foto ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleRemovePhoto(index)}
+                          className="absolute top-2 right-2 bg-destructive text-destructive-foreground rounded-full p-1.5 shadow-lg hover:bg-destructive/90 transition-colors"
+                          disabled={isFinalizing}
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="aspect-[4/3] bg-muted rounded-lg mb-4 flex items-center justify-center">
+                    <div className="text-center">
+                      <Camera className="h-16 w-16 mx-auto mb-2 text-muted-foreground opacity-50" />
+                      <p className="text-sm text-muted-foreground">
+                        Nenhuma foto capturada
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Mínimo: 4 fotos | Máximo: 10 fotos
+                      </p>
+                    </div>
+                  </div>
+                )}
+                
+                {currentMultiplePhotos.length > 0 && (
+                  <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg mb-4">
+                    <p className="text-sm text-blue-800 dark:text-blue-200">
+                      {currentMultiplePhotos.length} foto(s) adicionada(s) 
+                      {currentMultiplePhotos.length < 4 && ` - Mínimo: 4 fotos`}
+                      {currentMultiplePhotos.length >= 10 && ` - Limite atingido`}
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              // Foto única
+              <div className="aspect-[4/3] bg-muted rounded-lg mb-6 overflow-hidden flex items-center justify-center">
+                {currentPhoto ? (
+                  <img
+                    src={currentPhoto.previewUrl}
+                    alt={currentStep.label}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="text-center">
+                    <Camera className="h-16 w-16 mx-auto mb-2 text-muted-foreground opacity-50" />
+                    <p className="text-sm text-muted-foreground">
+                      Nenhuma foto capturada
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Action Buttons */}
             <div className="grid grid-cols-2 gap-3">
@@ -298,20 +512,29 @@ export default function GuidedInspection() {
                 onClick={handleCameraCapture}
                 variant="outline"
                 className="w-full"
-                disabled={isUploading || isFinalizing}
+                disabled={isFinalizing || (isMultiplePhotosStep && currentMultiplePhotos.length >= 10)}
               >
                 <Camera className="h-4 w-4 mr-2" />
-                Tirar Foto
+                {isMultiplePhotosStep && currentMultiplePhotos.length > 0 ? 'Tirar Mais' : 'Tirar Foto'}
               </Button>
 
               <Button
                 onClick={() => document.getElementById('file-input')?.click()}
                 variant="outline"
                 className="w-full"
-                disabled={isUploading || isFinalizing}
+                disabled={isFinalizing || isProcessingGallery || (isMultiplePhotosStep && currentMultiplePhotos.length >= 10)}
               >
-                <Upload className="h-4 w-4 mr-2" />
-                Galeria
+                {isProcessingGallery ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Processando...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-4 w-4 mr-2" />
+                    {isMultiplePhotosStep && currentMultiplePhotos.length > 0 ? 'Adicionar Mais' : 'Galeria'}
+                  </>
+                )}
               </Button>
 
               <input
@@ -323,7 +546,7 @@ export default function GuidedInspection() {
               />
             </div>
 
-            {currentPhoto && (
+            {!isMultiplePhotosStep && currentPhoto && (
               <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg flex items-center gap-2">
                 <Check className="h-5 w-5 text-green-600 dark:text-green-400" />
                 <span className="text-sm text-green-800 dark:text-green-200">
@@ -346,7 +569,7 @@ export default function GuidedInspection() {
 
             <Button
               onClick={handleNext}
-              disabled={!currentPhoto || isFinalizing}
+              disabled={!hasPhotos || isFinalizing}
               className="flex-1"
             >
               {isFinalizing ? (

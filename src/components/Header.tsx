@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Menu, Plus, User, LogOut, Users } from 'lucide-react';
+import { Menu, Plus, User, LogOut, Users, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Logo } from './Logo';
 import {
@@ -50,10 +50,12 @@ export function Header() {
               <div className="flex flex-col gap-6 mt-6">
                 <div className="border-b border-border pb-4">
                   <p className="font-medium">{user?.name}</p>
-                  <p className="text-sm text-muted-foreground">{user?.email}</p>
-                  <p className="text-xs text-muted-foreground capitalize mt-1">
-                    {user?.role === 'gerente' ? 'Administrador' : 'Vendedor'}
-                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">{user?.email}</p>
+                  {user?.role === 'gerente' && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary text-primary-foreground mt-2">
+                      Administrador
+                    </span>
+                  )}
                 </div>
 
                 <nav className="flex flex-col gap-2">
@@ -67,12 +69,20 @@ export function Header() {
                     </Link>
                   </Button>
                   {user?.role === 'gerente' && (
-                    <Button asChild variant="ghost" className="justify-start">
-                      <Link to="/usuarios">
-                        <Users className="h-4 w-4 mr-2" />
-                        Gerenciar Usuários
-                      </Link>
-                    </Button>
+                    <>
+                      <Button asChild variant="ghost" className="justify-start">
+                        <Link to="/desempenho">
+                          <BarChart3 className="h-4 w-4 mr-2" />
+                          Desempenho
+                        </Link>
+                      </Button>
+                      <Button asChild variant="ghost" className="justify-start">
+                        <Link to="/usuarios">
+                          <Users className="h-4 w-4 mr-2" />
+                          Gerenciar Usuários
+                        </Link>
+                      </Button>
+                    </>
                   )}
                   <Button asChild variant="ghost" className="justify-start">
                     <Link to="/perfil">
@@ -103,18 +113,20 @@ export function Header() {
         <div className="hidden md:flex items-center gap-3 flex-1 justify-end">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="gap-2">
+              <Button variant="ghost" className="gap-2 h-auto py-2">
                 <User className="h-4 w-4" />
-                <span className="hidden lg:inline">{user?.name}</span>
+                <div className="hidden lg:flex flex-col items-start">
+                  <span className="text-sm font-medium">{user?.name}</span>
+                  {user?.role === 'gerente' && (
+                    <span className="text-xs text-primary font-semibold">Administrador</span>
+                  )}
+                </div>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <div className="px-2 py-1.5">
                 <p className="text-sm font-medium">{user?.name}</p>
-                <p className="text-xs text-muted-foreground">{user?.email}</p>
-                <p className="text-xs text-muted-foreground capitalize mt-1">
-                  {user?.role === 'gerente' ? 'Administrador' : 'Vendedor'}
-                </p>
+                <p className="text-xs text-muted-foreground mt-1">{user?.email}</p>
               </div>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
@@ -124,12 +136,20 @@ export function Header() {
                 </Link>
               </DropdownMenuItem>
               {user?.role === 'gerente' && (
-                <DropdownMenuItem asChild>
-                  <Link to="/usuarios" className="cursor-pointer">
-                    <Users className="h-4 w-4 mr-2" />
-                    Gerenciar Usuários
-                  </Link>
-                </DropdownMenuItem>
+                <>
+                  <DropdownMenuItem asChild>
+                    <Link to="/desempenho" className="cursor-pointer">
+                      <BarChart3 className="h-4 w-4 mr-2" />
+                      Desempenho
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/usuarios" className="cursor-pointer">
+                      <Users className="h-4 w-4 mr-2" />
+                      Gerenciar Usuários
+                    </Link>
+                  </DropdownMenuItem>
+                </>
               )}
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive">

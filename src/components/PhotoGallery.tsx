@@ -178,7 +178,7 @@ export function PhotoGallery({ photos, className }: PhotoGalleryProps) {
           <button
             key={index}
             onClick={() => openLightbox(index)}
-            className="aspect-square rounded-lg overflow-hidden bg-muted hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+            className="aspect-[4/3] rounded-lg overflow-hidden bg-muted hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
           >
             <img
               src={photo}

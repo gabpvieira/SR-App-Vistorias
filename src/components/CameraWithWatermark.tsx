@@ -47,11 +47,6 @@ export function CameraWithWatermark({ onPhotoCapture, onCancel }: CameraWithWate
       const previewUrl = URL.createObjectURL(watermarkedFile);
       setPreview(previewUrl);
       setCapturedFile(watermarkedFile);
-
-      toast({
-        title: 'Foto capturada',
-        description: 'Marca d\'água adicionada com sucesso',
-      });
     } catch (error) {
       console.error('Erro ao processar foto:', error);
       toast({
@@ -149,15 +144,21 @@ export function CameraWithWatermark({ onPhotoCapture, onCancel }: CameraWithWate
         )}
       </div>
 
-      {/* Preview da Foto */}
+      {/* Preview da Foto - 4:3 aspect ratio */}
       {preview ? (
         <div className="space-y-4">
-          <div className="relative aspect-video bg-muted rounded-lg overflow-hidden">
+          <div className="relative aspect-[4/3] bg-muted rounded-lg overflow-hidden">
             <img
               src={preview}
               alt="Preview"
               className="w-full h-full object-contain"
             />
+          </div>
+
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 text-center">
+            <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+              A foto ficou boa?
+            </p>
           </div>
 
           <div className="flex gap-2">
@@ -167,7 +168,7 @@ export function CameraWithWatermark({ onPhotoCapture, onCancel }: CameraWithWate
               className="flex-1"
             >
               <X className="h-4 w-4 mr-2" />
-              Descartar
+              Refazer
             </Button>
             <Button
               onClick={handleConfirm}
@@ -220,13 +221,6 @@ export function CameraWithWatermark({ onPhotoCapture, onCancel }: CameraWithWate
           )}
         </div>
       )}
-
-      {/* Informações */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-        <p className="text-xs text-blue-900">
-          <strong>ℹ️ Marca d'água automática:</strong> A foto será marcada com data, hora e localização no canto superior direito.
-        </p>
-      </div>
     </div>
   );
 }

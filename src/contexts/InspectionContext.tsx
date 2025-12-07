@@ -36,9 +36,8 @@ export function InspectionProvider({ children }: { children: React.ReactNode }) 
 
     try {
       setIsLoading(true);
-      const data = user.role === 'gerente' 
-        ? await getAllInspections()
-        : await getInspectionsByUserId(user.id);
+      // Carregar todas as vistorias para todos os usuários
+      const data = await getAllInspections();
       setInspections(data);
     } catch (error) {
       console.error('Erro ao carregar vistorias:', error);
@@ -52,11 +51,26 @@ export function InspectionProvider({ children }: { children: React.ReactNode }) 
     loadInspections();
   }, [loadInspections]);
 
+  // Recarregar vistorias quando a janela recebe foco
+  useEffect(() => {
+    const handleFocus = () => {
+      loadInspections();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [loadInspections]);
+
   const addInspection = useCallback(async (inspectionData: Omit<Inspection, 'id' | 'created_at' | 'updated_at'>) => {
     if (!user) throw new Error('Usuário não autenticado');
 
     try {
-      const newInspection = await createInspection(inspectionData);
+      // Garantir que o user_id seja do usuário logado
+      const dataWithUser = {
+        ...inspectionData,
+        user_id: user.id,
+      };
+      const newInspection = await createInspection(dataWithUser);
       setInspections(prev => [newInspection, ...prev]);
       return newInspection;
     } catch (error) {
@@ -83,8 +97,8 @@ export function InspectionProvider({ children }: { children: React.ReactNode }) 
 
     let filtered = [...inspections];
 
-    // Filter by user (gerente only)
-    if (filters.userId && user.role === 'gerente') {
+    // Filter by user
+    if (filters.userId) {
       filtered = filtered.filter(i => i.user_id === filters.userId);
     }
 

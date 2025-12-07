@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MessageCircle, Send, ThumbsUp, Edit2, Trash2, X, Check } from 'lucide-react';
+import { MessageSquare, Send, ThumbsUp, Edit2, Trash2, X, Check } from 'lucide-react';
 import { 
   getCommentsByInspectionId, 
   createInspectionComment, 
@@ -150,7 +150,7 @@ export function InspectionComments({ inspectionId }: InspectionCommentsProps) {
   return (
     <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
       <div className="flex items-center gap-2 mb-4">
-        <MessageCircle className="w-5 h-5 text-red-600" />
+        <MessageSquare className="w-5 h-5 text-red-600" />
         <h3 className="text-lg font-semibold text-gray-900">Comentários</h3>
         <span className="text-sm text-gray-500">({comments.length})</span>
       </div>
