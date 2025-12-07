@@ -52,12 +52,6 @@ export default function InspectionDetail() {
       try {
         const inspectionData = await getInspectionById(id);
         
-        // Check access
-        if (user?.role === 'vendedor' && inspectionData.user_id !== user.id) {
-          setNotFound(true);
-          return;
-        }
-
         setInspection(inspectionData);
 
         // Load photos
