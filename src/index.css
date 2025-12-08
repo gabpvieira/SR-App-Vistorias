@@ -114,6 +114,24 @@
   html {
     font-family: 'Poppins', sans-serif;
   }
+
+  /* Garantir background contínuo e espaçamento adequado no final das páginas */
+  html, body {
+    min-height: 100vh;
+    background-color: hsl(var(--secondary));
+  }
+
+  /* Adicionar espaçamento confortável no final de todos os containers main */
+  main {
+    padding-bottom: 4rem !important;
+  }
+
+  /* Em mobile, aumentar ainda mais o espaçamento */
+  @media (max-width: 768px) {
+    main {
+      padding-bottom: 6rem !important;
+    }
+  }
 }
 
 @layer utilities {
