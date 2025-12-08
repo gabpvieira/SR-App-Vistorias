@@ -159,7 +159,8 @@ export default function ActivityFreeInspection() {
   return (
     <>
       <Helmet>
-        <title>Vistoria Livre - Atividade Adicional</title>
+        <title>Atividade Livre</title>
+        <meta name="robots" content="noindex, nofollow, noarchive, nosnippet" />
       </Helmet>
 
       <div className="min-h-screen bg-secondary">

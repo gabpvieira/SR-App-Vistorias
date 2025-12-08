@@ -41,8 +41,8 @@ export default function Performance() {
   return (
     <>
       <Helmet>
-        <title>Painel de Desempenho - SR Caminhões</title>
-        <meta name="description" content="Visualize métricas e estatísticas de desempenho da equipe." />
+        <title>Painel de Desempenho</title>
+        <meta name="robots" content="noindex, nofollow, noarchive, nosnippet" />
       </Helmet>
 
       <div className="min-h-screen bg-secondary">

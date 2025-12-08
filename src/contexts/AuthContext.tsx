@@ -85,11 +85,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { success: true };
     } catch (error: any) {
       console.error('Erro no login:', error);
+      
+      let errorMessage = 'Erro ao conectar com o servidor';
+      
+      if (error.message === 'Invalid email or password') {
+        errorMessage = 'E-mail ou senha incorretos';
+      } else if (error.message === 'User account is deactivated') {
+        errorMessage = 'Sua conta foi desativada. Entre em contato com o administrador.';
+      }
+      
       return { 
         success: false, 
-        error: error.message === 'Invalid email or password' 
-          ? 'E-mail ou senha incorretos' 
-          : 'Erro ao conectar com o servidor' 
+        error: errorMessage
       };
     }
   }, []);

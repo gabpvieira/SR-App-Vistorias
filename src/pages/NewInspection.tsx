@@ -239,8 +239,8 @@ export default function NewInspection() {
   return (
     <>
       <Helmet>
-        <title>Nova Vistoria - SR Caminhões</title>
-        <meta name="description" content="Cadastre uma nova vistoria de veículo no sistema SR Caminhões." />
+        <title>Nova Entrada</title>
+        <meta name="robots" content="noindex, nofollow, noarchive, nosnippet" />
       </Helmet>
 
       <div className="min-h-screen bg-secondary">

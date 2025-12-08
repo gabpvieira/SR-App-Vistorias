@@ -154,8 +154,8 @@ export default function InspectionDetail() {
   return (
     <>
       <Helmet>
-        <title>Vistoria {inspection.id.substring(0, 8)} - SR Caminhões</title>
-        <meta name="description" content={`Detalhes da vistoria - Placa ${inspection.vehicle_plate}`} />
+        <title>Detalhes</title>
+        <meta name="robots" content="noindex, nofollow, noarchive, nosnippet" />
       </Helmet>
 
       <div className="min-h-screen bg-secondary">

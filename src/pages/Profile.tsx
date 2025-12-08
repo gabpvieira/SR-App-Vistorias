@@ -24,8 +24,8 @@ export default function Profile() {
   return (
     <>
       <Helmet>
-        <title>Minha Conta - SR Caminhões</title>
-        <meta name="description" content="Gerencie sua conta no sistema SR Caminhões." />
+        <title>Minha Conta</title>
+        <meta name="robots" content="noindex, nofollow, noarchive, nosnippet" />
       </Helmet>
 
       <div className="min-h-screen bg-secondary">

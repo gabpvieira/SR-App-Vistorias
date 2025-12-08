@@ -27,11 +27,25 @@ export async function authenticateUser(email: string, password: string) {
     throw new Error('Invalid email or password');
   }
 
+  // Verificar se o usuário está ativo
+  const { data: userData, error: userError } = await supabase
+    .from('users')
+    .select('is_active')
+    .eq('id', data[0].user_id)
+    .single();
+
+  if (userError) throw userError;
+
+  if (!userData.is_active) {
+    throw new Error('User account is deactivated');
+  }
+
   return {
     id: data[0].user_id,
     name: data[0].user_name,
     email: data[0].user_email,
     role: data[0].user_role,
+    is_active: userData.is_active,
   };
 }
 
@@ -70,7 +84,32 @@ export async function createUser(userData: {
       email: userData.email,
       password_hash: userData.password, // Will be hashed by trigger
       role: userData.role,
+      is_active: true, // Novo usuário sempre começa ativo
     })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function deactivateUser(userId: string) {
+  const { data, error } = await supabase
+    .from('users')
+    .update({ is_active: false, updated_at: new Date().toISOString() })
+    .eq('id', userId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function activateUser(userId: string) {
+  const { data, error } = await supabase
+    .from('users')
+    .update({ is_active: true, updated_at: new Date().toISOString() })
+    .eq('id', userId)
     .select()
     .single();
 

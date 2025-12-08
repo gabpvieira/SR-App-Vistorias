@@ -403,7 +403,8 @@ export default function GuidedInspection() {
   return (
     <>
       <Helmet>
-        <title>Vistoria Guiada - SR Caminhões</title>
+        <title>Processo Guiado</title>
+        <meta name="robots" content="noindex, nofollow, noarchive, nosnippet" />
       </Helmet>
 
       <div className="min-h-screen bg-secondary">

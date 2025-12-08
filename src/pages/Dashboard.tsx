@@ -196,8 +196,8 @@ export default function Dashboard() {
     return (
       <>
         <Helmet>
-          <title>Dashboard - SR Caminhões</title>
-          <meta name="description" content="Gerencie suas vistorias de veículos no sistema SR Caminhões." />
+          <title>Painel</title>
+          <meta name="robots" content="noindex, nofollow, noarchive, nosnippet" />
         </Helmet>
 
         <div className="min-h-screen bg-secondary">
@@ -395,8 +395,8 @@ export default function Dashboard() {
   return (
     <>
       <Helmet>
-        <title>Dashboard - SR Caminhões</title>
-        <meta name="description" content="Painel administrativo do sistema SR Caminhões." />
+        <title>Painel Administrativo</title>
+        <meta name="robots" content="noindex, nofollow, noarchive, nosnippet" />
       </Helmet>
 
       <div className="min-h-screen bg-secondary">

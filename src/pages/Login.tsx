@@ -69,8 +69,9 @@ export default function Login() {
   return (
     <>
       <Helmet>
-        <title>Login - SR Caminhões</title>
-        <meta name="description" content="Faça login no sistema de vistorias da SR Caminhões." />
+        <title>Login - Sistema Interno</title>
+        <meta name="robots" content="noindex, nofollow, noarchive, nosnippet" />
+        <meta name="description" content="Acesso restrito" />
       </Helmet>
 
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 px-4 py-12">

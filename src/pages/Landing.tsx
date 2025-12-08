@@ -26,8 +26,9 @@ export default function Landing() {
   return (
     <>
       <Helmet>
-        <title>SR Caminhões - Sistema de Vistorias</title>
-        <meta name="description" content="Sistema interno da SR Caminhões para gestão de vistorias de veículos seminovos. Acesso exclusivo para colaboradores autorizados." />
+        <title>Acesso ao Sistema</title>
+        <meta name="robots" content="noindex, nofollow, noarchive, nosnippet" />
+        <meta name="description" content="Acesso restrito" />
       </Helmet>
       
       <div className="min-h-screen flex flex-col bg-white dark:from-slate-950 dark:via-slate-900 dark:to-slate-950" style={{ backgroundColor: '#ffffff' }}>

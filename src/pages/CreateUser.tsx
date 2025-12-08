@@ -79,7 +79,8 @@ export default function CreateUser() {
   return (
     <>
       <Helmet>
-        <title>Novo Usuário - SR Caminhões</title>
+        <title>Novo Usuário</title>
+        <meta name="robots" content="noindex, nofollow, noarchive, nosnippet" />
       </Helmet>
 
       <div className="min-h-screen bg-secondary">

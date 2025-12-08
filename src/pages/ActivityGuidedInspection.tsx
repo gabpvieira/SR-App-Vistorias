@@ -192,7 +192,8 @@ export default function ActivityGuidedInspection() {
   return (
     <>
       <Helmet>
-        <title>Vistoria Guiada - Atividade Adicional</title>
+        <title>Atividade Guiada</title>
+        <meta name="robots" content="noindex, nofollow, noarchive, nosnippet" />
       </Helmet>
 
       <div className="min-h-screen bg-secondary">

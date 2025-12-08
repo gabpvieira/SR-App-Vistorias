@@ -135,6 +135,7 @@ export default function ActivityView() {
     <>
       <Helmet>
         <title>Detalhes da Atividade</title>
+        <meta name="robots" content="noindex, nofollow, noarchive, nosnippet" />
       </Helmet>
 
       <div className="min-h-screen bg-secondary">
