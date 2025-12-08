@@ -189,7 +189,8 @@ export function InspectionComments({ inspectionId }: InspectionCommentsProps) {
                       <textarea
                         value={editContent}
                         onChange={(e) => setEditContent(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 resize-none text-sm sm:text-base"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 resize-none text-base"
+                        style={{ fontSize: '16px' }}
                         rows={3}
                       />
                       <div className="flex gap-2 mt-2">
@@ -263,7 +264,8 @@ export function InspectionComments({ inspectionId }: InspectionCommentsProps) {
           value={newComment}
           onChange={(e) => setNewComment(e.target.value)}
           placeholder="Adicione um comentário..."
-          className="flex-1 px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none text-sm sm:text-base"
+          className="flex-1 px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none text-base"
+          style={{ fontSize: '16px' }}
           rows={3}
           disabled={submitting}
         />
