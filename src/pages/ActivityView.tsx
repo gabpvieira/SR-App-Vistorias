@@ -108,7 +108,7 @@ export default function ActivityView() {
     return (
       <div className="min-h-screen bg-secondary">
         <Header />
-        <main className="container px-4 py-6">
+        <main className="container px-4 sm:px-6 lg:px-8 py-6">
           <div className="bg-card border border-border rounded-lg p-12 text-center">
             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
             <p className="text-muted-foreground">Carregando...</p>
@@ -122,7 +122,7 @@ export default function ActivityView() {
     return (
       <div className="min-h-screen bg-secondary">
         <Header />
-        <main className="container px-4 py-6">
+        <main className="container px-4 sm:px-6 lg:px-8 py-6">
           <div className="bg-card border border-border rounded-lg p-12 text-center">
             <p className="text-muted-foreground">Atividade não encontrada</p>
           </div>
@@ -141,7 +141,7 @@ export default function ActivityView() {
       <div className="min-h-screen bg-secondary">
         <Header />
 
-        <main className="container px-4 py-6 max-w-4xl">
+        <main className="container px-4 sm:px-6 lg:px-8 py-6 max-w-4xl">
           <button
             onClick={() => navigate(`/inspection/${activity.inspection_id}`)}
             className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6"

@@ -110,7 +110,7 @@ export default function UserManagement() {
       <div className="min-h-screen bg-secondary">
         <Header />
 
-        <main className="container px-4 py-6 max-w-6xl">
+        <main className="container px-4 sm:px-6 lg:px-8 py-6 max-w-6xl">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <div>
               <h1 className="text-2xl font-bold text-foreground">Gerenciar Usuários</h1>

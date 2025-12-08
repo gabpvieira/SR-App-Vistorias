@@ -166,7 +166,7 @@ export default function ActivityGuidedInspection() {
     return (
       <div className="min-h-screen bg-secondary">
         <Header />
-        <main className="container px-4 py-6">
+        <main className="container px-4 sm:px-6 lg:px-8 py-6">
           <div className="bg-card border border-border rounded-lg p-12 text-center">
             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
             <p className="text-muted-foreground">Carregando...</p>
@@ -180,7 +180,7 @@ export default function ActivityGuidedInspection() {
     return (
       <div className="min-h-screen bg-secondary">
         <Header />
-        <main className="container px-4 py-6">
+        <main className="container px-4 sm:px-6 lg:px-8 py-6">
           <div className="bg-card border border-border rounded-lg p-12 text-center">
             <p className="text-muted-foreground">Nenhuma etapa encontrada</p>
           </div>
@@ -199,7 +199,7 @@ export default function ActivityGuidedInspection() {
       <div className="min-h-screen bg-secondary">
         <Header />
 
-        <main className="container px-4 py-6 max-w-2xl">
+        <main className="container px-4 sm:px-6 lg:px-8 py-6 max-w-2xl">
           <button
             onClick={() => navigate(-1)}
             className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6"

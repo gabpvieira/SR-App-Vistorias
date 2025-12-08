@@ -86,7 +86,7 @@ export default function CreateUser() {
       <div className="min-h-screen bg-secondary">
         <Header />
 
-        <main className="container px-4 py-6 max-w-2xl">
+        <main className="container px-4 sm:px-6 lg:px-8 py-6 max-w-2xl">
           <button
             onClick={() => navigate('/usuarios')}
             className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"

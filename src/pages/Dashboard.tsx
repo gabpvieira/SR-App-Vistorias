@@ -215,7 +215,7 @@ export default function Dashboard() {
         <div className="min-h-screen bg-secondary">
           <Header />
 
-          <main className="container px-4 py-6">
+          <main className="container px-4 sm:px-6 lg:px-8 py-6">
             <WelcomeGreeting />
 
             {/* Desktop Tabs */}
@@ -414,7 +414,7 @@ export default function Dashboard() {
       <div className="min-h-screen bg-secondary">
         <Header />
 
-        <main className="container px-4 py-6">
+        <main className="container px-4 sm:px-6 lg:px-8 py-6">
           <WelcomeGreeting />
 
           {/* Tabs for Desktop - Hidden on Mobile */}
