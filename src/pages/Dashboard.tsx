@@ -976,35 +976,69 @@ export default function Dashboard() {
                                 )}
                               </div>
                               <p className="text-xs text-muted-foreground truncate">{u.email}</p>
+                              <span className={`inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                                u.is_active 
+                                  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                                  : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                              }`}>
+                                {u.is_active ? (
+                                  <>
+                                    <UserCheck className="h-3 w-3" />
+                                    Ativo
+                                  </>
+                                ) : (
+                                  <>
+                                    <UserX className="h-3 w-3" />
+                                    Inativo
+                                  </>
+                                )}
+                              </span>
                             </div>
 
-                            {/* Delete Button */}
+                            {/* Toggle Status Button */}
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <Button
-                                  variant="ghost"
+                                  variant={u.is_active ? "ghost" : "outline"}
                                   size="icon"
                                   className="h-8 w-8 flex-shrink-0"
-                                  disabled={deletingId === u.id || u.id === user?.id}
+                                  disabled={processingId === u.id || u.id === user?.id}
                                 >
-                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                  {u.is_active ? (
+                                    <UserX className="h-4 w-4 text-destructive" />
+                                  ) : (
+                                    <UserCheck className="h-4 w-4 text-green-600" />
+                                  )}
                                 </Button>
                               </AlertDialogTrigger>
                               <AlertDialogContent className="max-w-[90vw] sm:max-w-md">
                                 <AlertDialogHeader>
-                                  <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                                  <AlertDialogTitle>
+                                    {u.is_active ? 'Desativar usuário' : 'Reativar usuário'}
+                                  </AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    Tem certeza que deseja deletar o usuário <strong>{u.name}</strong>?
-                                    Esta ação não pode ser desfeita.
+                                    {u.is_active ? (
+                                      <>
+                                        Tem certeza que deseja desativar <strong>{u.name}</strong>?
+                                        O histórico de vistorias será preservado.
+                                      </>
+                                    ) : (
+                                      <>
+                                        Tem certeza que deseja reativar <strong>{u.name}</strong>?
+                                      </>
+                                    )}
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter className="flex-col sm:flex-row gap-2">
                                   <AlertDialogCancel className="m-0">Cancelar</AlertDialogCancel>
                                   <AlertDialogAction
-                                    onClick={() => handleDeleteUser(u.id, u.name)}
-                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90 m-0"
+                                    onClick={() => handleToggleUserStatus(u.id, u.name, u.is_active)}
+                                    className={`m-0 ${u.is_active 
+                                      ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                      : "bg-green-600 text-white hover:bg-green-700"
+                                    }`}
                                   >
-                                    Deletar
+                                    {u.is_active ? 'Desativar' : 'Reativar'}
                                   </AlertDialogAction>
                                 </AlertDialogFooter>
                               </AlertDialogContent>
