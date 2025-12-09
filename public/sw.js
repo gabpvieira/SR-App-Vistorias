@@ -2,6 +2,9 @@
 const CACHE_VERSION = 'v1';
 const CACHE_NAME = `sr-vistorias-${CACHE_VERSION}`;
 
+// Workbox manifest injection point
+const PRECACHE_MANIFEST = self.__WB_MANIFEST || [];
+
 // Assets para cache
 const STATIC_ASSETS = [
   '/',
@@ -21,7 +24,9 @@ self.addEventListener('install', (event) => {
     caches.open(CACHE_NAME)
       .then(cache => {
         console.log('[SW] Caching static assets');
-        return cache.addAll(STATIC_ASSETS);
+        // Cachear assets estáticos + precache manifest do Workbox
+        const allAssets = [...STATIC_ASSETS, ...PRECACHE_MANIFEST.map(entry => entry.url || entry)];
+        return cache.addAll(allAssets);
       })
       .then(() => {
         console.log('[SW] Skip waiting - ativando imediatamente');
