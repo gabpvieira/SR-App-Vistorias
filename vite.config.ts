@@ -15,7 +15,11 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: "autoUpdate",
+      injectRegister: null, // Desabilitar registro automático (usaremos nosso custom)
       includeAssets: ["favicon.png", "icon-192.png", "icon-512.png", "logo SR.png"],
+      strategies: "injectManifest",
+      srcDir: "public",
+      filename: "sw.js",
       manifest: {
         id: "/",
         name: "SR Vistorias - Sistema de Gerenciamento",
@@ -47,39 +51,6 @@ export default defineConfig(({ mode }) => ({
             sizes: "2000x2000",
             type: "image/png",
             form_factor: "wide",
-          },
-        ],
-      },
-      workbox: {
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2}"],
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/hppdjdnnovtxtiwawtsh\.supabase\.co\/.*/i,
-            handler: "NetworkFirst",
-            options: {
-              cacheName: "supabase-cache",
-              expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 60 * 60 * 24, // 24 hours
-              },
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
-            },
-          },
-          {
-            urlPattern: /^https:\/\/.*\.supabase\.co\/storage\/.*/i,
-            handler: "CacheFirst",
-            options: {
-              cacheName: "supabase-storage-cache",
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24 * 7, // 7 days
-              },
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
-            },
           },
         ],
       },
