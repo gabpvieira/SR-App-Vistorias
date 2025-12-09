@@ -70,20 +70,28 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
+  // SEMPRE ignorar requisições do Supabase (auth, rest, storage, realtime)
+  // Deixar passar direto para a rede sem interceptar
+  if (url.hostname.includes('supabase.co')) {
+    return; // Não interceptar - deixar o navegador lidar
+  }
+
   // Ignorar requisições não-GET
   if (request.method !== 'GET') {
     return;
   }
 
-  // Ignorar requisições do Supabase Auth (sempre buscar da rede)
-  if (url.hostname.includes('supabase.co') && url.pathname.includes('/auth/')) {
-    return;
+  // Apenas cachear assets locais (JS, CSS, imagens, fontes)
+  const isLocalAsset = url.origin === self.location.origin;
+  
+  if (!isLocalAsset) {
+    return; // Não cachear recursos externos
   }
 
   event.respondWith(
     fetch(request)
       .then(response => {
-        // Se a resposta for válida, cachear
+        // Se a resposta for válida, cachear apenas assets locais
         if (response && response.status === 200) {
           const responseClone = response.clone();
           caches.open(CACHE_NAME).then(cache => {
