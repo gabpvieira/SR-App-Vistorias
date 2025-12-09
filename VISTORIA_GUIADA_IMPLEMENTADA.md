@@ -6,13 +6,13 @@ Sistema de vistoria guiada com etapas obrigatórias para veículos do tipo **"Tr
 
 ## 📋 Modelos Disponíveis
 
-### 1. Cavalo (13 etapas)
-1. Frontal 45º
-2. Frente reta
-3. Lateral esquerda completa
-4. Lateral direita completa
-5. Traseira (caixa/chassi)
-6. Chassi lado esquerdo
+### 1. Cavalo (9 etapas)
+1. Frontal 45° – Lado Motorista
+2. Lateral Completa – Lado Motorista
+3. Lateral Completa – Lado Passageiro
+4. Traseira – Área de Suspensão
+5. Pneus Dianteiros (mínimo 2 fotos)
+6. Painel Interno
 7. Chassi lado direito
 8. Pneus dianteiros (completos)
 9. Pneus traseiros (mínimo 2 ângulos)
@@ -125,7 +125,7 @@ Cada foto salva:
 5. Escolha modelo "Cavalo"
 6. Informe placa (ex: ABC-1234)
 7. Clique em "Iniciar Vistoria Guiada"
-8. Siga as 13 etapas tirando/selecionando fotos
+8. Siga as 9 etapas tirando/selecionando fotos
 9. Clique em "Finalizar Vistoria"
 10. Verifique no Dashboard a vistoria criada
 

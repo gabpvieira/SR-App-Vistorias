@@ -48,54 +48,69 @@ export function InspectionCard({ inspection }: InspectionCardProps) {
   }, [inspection.id, inspection.user_id, isManager]);
 
   return (
-    <Card className="overflow-hidden hover:border-primary/30 transition-colors animate-fade-in">
-      <div className="aspect-[4/3] relative overflow-hidden bg-muted">
-        {firstPhoto ? (
-          <img
-            src={firstPhoto}
-            alt={`Vistoria ${inspection.vehicle_plate}`}
-            className="w-full h-full object-cover"
-            loading="lazy"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <Camera className="h-12 w-12 text-muted-foreground" />
+    <Link to={`/vistoria/${inspection.id}`} className="group block">
+      <Card className="overflow-hidden border-2 hover:border-primary/50 hover:shadow-xl transition-all duration-300 animate-fade-in bg-card h-full">
+        {/* Image Container */}
+        <div className="aspect-[4/3] relative overflow-hidden bg-gradient-to-br from-muted to-muted/50">
+          {firstPhoto ? (
+            <img
+              src={firstPhoto}
+              alt={`Vistoria ${inspection.vehicle_plate}`}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              loading="lazy"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <Camera className="h-16 w-16 text-muted-foreground/30" />
+            </div>
+          )}
+          
+          {/* Badge Overlay */}
+          <div className="absolute top-3 right-3">
+            <InspectionTypeBadge type={inspection.type} size="sm" />
           </div>
-        )}
-        <div className="absolute top-3 right-3">
-          <InspectionTypeBadge type={inspection.type} size="sm" />
+          
+          {/* Photo Count Badge */}
+          <div className="absolute bottom-3 right-3 bg-black/70 backdrop-blur-sm text-white px-2.5 py-1 rounded-full flex items-center gap-1.5 text-xs font-medium">
+            <Camera className="h-3.5 w-3.5" />
+            <span>{photoCount}</span>
+          </div>
         </div>
-      </div>
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between mb-2">
-          <div>
-            <h3 className="text-lg font-bold text-foreground">{inspection.vehicle_plate || 'Sem placa'}</h3>
-            <p className="text-sm text-muted-foreground uppercase">{inspection.vehicle_model_name}</p>
-          </div>
-          <div className="flex items-center gap-1 text-muted-foreground">
-            <Camera className="h-4 w-4" />
-            <span className="text-sm">{photoCount}</span>
-          </div>
-        </div>
-        
-        <p className="text-sm text-muted-foreground mb-1">
-          {inspection.vehicle_year} • {inspection.vehicle_status === 'novo' ? 'Novo' : 'Seminovo'}
-        </p>
-        
-        <p className="text-sm text-muted-foreground mb-1">
-          {formatShortDate(inspection.created_at)}
-        </p>
-        
-        {isManager && userName && (
-          <p className="text-sm text-muted-foreground mb-3">
-            {userName}
-          </p>
-        )}
 
-        <Button asChild variant="outline" className="w-full mt-2">
-          <Link to={`/vistoria/${inspection.id}`}>Ver detalhes</Link>
-        </Button>
-      </CardContent>
-    </Card>
+        {/* Content */}
+        <CardContent className="p-4 space-y-3">
+          {/* Plate & Model */}
+          <div>
+            <h3 className="text-xl font-bold text-foreground tracking-tight group-hover:text-primary transition-colors">
+              {inspection.vehicle_plate || 'SEM PLACA'}
+            </h3>
+            <p className="text-sm text-muted-foreground font-medium uppercase tracking-wide mt-0.5">
+              {inspection.vehicle_model_name}
+            </p>
+          </div>
+          
+          {/* Details */}
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span className="font-medium">{inspection.vehicle_year}</span>
+            <span>•</span>
+            <span className="capitalize">{inspection.vehicle_status === 'novo' ? 'Novo' : 'Seminovo'}</span>
+          </div>
+          
+          {/* Date */}
+          <div className="text-xs text-muted-foreground">
+            {formatShortDate(inspection.created_at)}
+          </div>
+          
+          {/* User Name (Manager only) */}
+          {isManager && userName && (
+            <div className="pt-2 border-t border-border">
+              <p className="text-xs text-muted-foreground font-medium">
+                {userName}
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </Link>
   );
 }

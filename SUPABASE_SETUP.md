@@ -46,7 +46,7 @@ Um componente de teste foi adicionado temporariamente no Dashboard para verifica
    - Relacionamento com inspections
 
 4. **inspection_steps_template** - Templates de etapas
-   - Cavalo: 13 etapas
+   - Cavalo: 9 etapas
    - Rodotrem Basculante: 7 etapas
    - Rodotrem Graneleiro: 7 etapas
 

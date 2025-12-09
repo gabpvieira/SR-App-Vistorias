@@ -77,13 +77,19 @@ export default function GuidedInspection() {
     loadSteps();
   }, [vehicleModel, navigate, toast]);
 
+  // Scroll para o topo quando a etapa mudar
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentStepIndex]);
+
   const currentStep = steps[currentStepIndex];
   const progress = steps.length > 0 ? ((currentStepIndex + 1) / steps.length) * 100 : 0;
   const isLastStep = currentStepIndex === steps.length - 1;
   
   // Verificar se a etapa atual permite múltiplas fotos
-  const isMultiplePhotosStep = currentStep?.label?.toLowerCase().includes('pneus') || 
-                                currentStep?.label?.toLowerCase().includes('minimo');
+  const isMultiplePhotosStep = currentStep?.label?.toLowerCase().includes('mínimo') || 
+                                currentStep?.label?.toLowerCase().includes('até') ||
+                                currentStep?.label?.toLowerCase().includes('plaqueta');
   
   const currentPhoto = currentStep ? photos.get(currentStep.id) : null;
   const currentMultiplePhotos = currentStep ? multiplePhotos.get(currentStep.id) || [] : [];
@@ -124,11 +130,20 @@ export default function GuidedInspection() {
         // Etapa com múltiplas fotos
         const currentPhotos = multiplePhotos.get(currentStep.id) || [];
         
-        // Limite de 10 fotos
-        if (currentPhotos.length >= 10) {
+        // Determinar limite de fotos baseado na etapa
+        let maxPhotos = 10;
+        if (currentStep.label?.toLowerCase().includes('pneus dianteiros')) {
+          maxPhotos = 2; // Pneus dianteiros: máximo 2 fotos
+        } else if (currentStep.label?.toLowerCase().includes('plaqueta')) {
+          maxPhotos = 2; // Plaqueta: máximo 2 fotos
+        } else if (currentStep.label?.toLowerCase().includes('detalhes')) {
+          maxPhotos = 10; // Detalhes: máximo 10 fotos
+        }
+        
+        if (currentPhotos.length >= maxPhotos) {
           toast({
             title: 'Limite atingido',
-            description: 'Máximo de 10 fotos por etapa',
+            description: `Máximo de ${maxPhotos} foto(s) por etapa`,
             variant: 'destructive',
           });
           setIsProcessingGallery(false);
@@ -192,11 +207,20 @@ export default function GuidedInspection() {
       // Etapa com múltiplas fotos
       const currentPhotos = multiplePhotos.get(currentStep.id) || [];
       
-      // Limite de 10 fotos
-      if (currentPhotos.length >= 10) {
+      // Determinar limite de fotos baseado na etapa
+      let maxPhotos = 10;
+      if (currentStep.label?.toLowerCase().includes('pneus dianteiros')) {
+        maxPhotos = 2; // Pneus dianteiros: máximo 2 fotos
+      } else if (currentStep.label?.toLowerCase().includes('plaqueta')) {
+        maxPhotos = 2; // Plaqueta: máximo 2 fotos
+      } else if (currentStep.label?.toLowerCase().includes('detalhes')) {
+        maxPhotos = 10; // Detalhes: máximo 10 fotos
+      }
+      
+      if (currentPhotos.length >= maxPhotos) {
         toast({
           title: 'Limite atingido',
-          description: 'Máximo de 10 fotos por etapa',
+          description: `Máximo de ${maxPhotos} foto(s) por etapa`,
           variant: 'destructive',
         });
         return;
@@ -229,11 +253,20 @@ export default function GuidedInspection() {
   const handleNext = () => {
     // Validar se tem fotos
     if (isMultiplePhotosStep) {
-      const minPhotos = 4;
+      // Determinar mínimo de fotos baseado na etapa
+      let minPhotos = 1;
+      if (currentStep?.label?.toLowerCase().includes('pneus dianteiros')) {
+        minPhotos = 2; // Pneus dianteiros: mínimo 2 fotos
+      } else if (currentStep?.label?.toLowerCase().includes('plaqueta')) {
+        minPhotos = 1; // Plaqueta: mínimo 1 foto (até 2)
+      } else if (currentStep?.label?.toLowerCase().includes('detalhes')) {
+        minPhotos = 1; // Detalhes: mínimo 1 foto (até 10)
+      }
+      
       if (currentMultiplePhotos.length < minPhotos) {
         toast({
           title: 'Fotos insuficientes',
-          description: `Adicione pelo menos ${minPhotos} fotos antes de continuar.`,
+          description: `Adicione pelo menos ${minPhotos} foto(s) antes de continuar.`,
           variant: 'destructive',
         });
         return;
@@ -253,12 +286,16 @@ export default function GuidedInspection() {
       handleFinalize();
     } else {
       setCurrentStepIndex(prev => prev + 1);
+      // Scroll para o topo da página
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
   const handleBack = () => {
     if (currentStepIndex > 0) {
       setCurrentStepIndex(prev => prev - 1);
+      // Scroll para o topo da página
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -298,9 +335,21 @@ export default function GuidedInspection() {
 
     // Check if all steps have photos (considerando etapas com múltiplas fotos)
     const missingSteps = steps.filter(step => {
-      const hasMultiplePhotos = multiplePhotos.has(step.id) && multiplePhotos.get(step.id)!.length >= 4;
-      const hasSinglePhoto = photos.has(step.id);
-      return !hasMultiplePhotos && !hasSinglePhoto;
+      const isMultiple = step.label?.toLowerCase().includes('mínimo') || 
+                        step.label?.toLowerCase().includes('até') ||
+                        step.label?.toLowerCase().includes('plaqueta');
+      
+      if (isMultiple) {
+        const stepPhotos = multiplePhotos.get(step.id) || [];
+        // Determinar mínimo baseado na etapa
+        let minRequired = 1;
+        if (step.label?.toLowerCase().includes('pneus dianteiros')) {
+          minRequired = 2;
+        }
+        return stepPhotos.length < minRequired;
+      } else {
+        return !photos.has(step.id);
+      }
     });
     
     if (missingSteps.length > 0) {
@@ -471,7 +520,9 @@ export default function GuidedInspection() {
                         Nenhuma foto capturada
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Mínimo: 4 fotos | Máximo: 10 fotos
+                        {currentStep.label?.toLowerCase().includes('pneus dianteiros') && 'Mínimo: 2 fotos | Máximo: 2 fotos'}
+                        {currentStep.label?.toLowerCase().includes('plaqueta') && 'Mínimo: 1 foto | Máximo: 2 fotos'}
+                        {currentStep.label?.toLowerCase().includes('detalhes') && 'Mínimo: 1 foto | Máximo: 10 fotos'}
                       </p>
                     </div>
                   </div>
@@ -480,9 +531,11 @@ export default function GuidedInspection() {
                 {currentMultiplePhotos.length > 0 && (
                   <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg mb-4">
                     <p className="text-sm text-blue-800 dark:text-blue-200">
-                      {currentMultiplePhotos.length} foto(s) adicionada(s) 
-                      {currentMultiplePhotos.length < 4 && ` - Mínimo: 4 fotos`}
-                      {currentMultiplePhotos.length >= 10 && ` - Limite atingido`}
+                      {currentMultiplePhotos.length} foto(s) adicionada(s)
+                      {currentStep.label?.toLowerCase().includes('pneus dianteiros') && currentMultiplePhotos.length < 2 && ` - Mínimo: 2 fotos`}
+                      {currentStep.label?.toLowerCase().includes('pneus dianteiros') && currentMultiplePhotos.length >= 2 && ` - Completo`}
+                      {currentStep.label?.toLowerCase().includes('plaqueta') && currentMultiplePhotos.length >= 2 && ` - Limite atingido`}
+                      {currentStep.label?.toLowerCase().includes('detalhes') && currentMultiplePhotos.length >= 10 && ` - Limite atingido`}
                     </p>
                   </div>
                 )}
@@ -513,7 +566,12 @@ export default function GuidedInspection() {
                 onClick={handleCameraCapture}
                 variant="outline"
                 className="w-full"
-                disabled={isFinalizing || (isMultiplePhotosStep && currentMultiplePhotos.length >= 10)}
+                disabled={isFinalizing || (isMultiplePhotosStep && (() => {
+                  if (currentStep?.label?.toLowerCase().includes('pneus dianteiros')) return currentMultiplePhotos.length >= 2;
+                  if (currentStep?.label?.toLowerCase().includes('plaqueta')) return currentMultiplePhotos.length >= 2;
+                  if (currentStep?.label?.toLowerCase().includes('detalhes')) return currentMultiplePhotos.length >= 10;
+                  return false;
+                })())}
               >
                 <Camera className="h-4 w-4 mr-2" />
                 {isMultiplePhotosStep && currentMultiplePhotos.length > 0 ? 'Tirar Mais' : 'Tirar Foto'}
@@ -523,7 +581,12 @@ export default function GuidedInspection() {
                 onClick={() => document.getElementById('file-input')?.click()}
                 variant="outline"
                 className="w-full"
-                disabled={isFinalizing || isProcessingGallery || (isMultiplePhotosStep && currentMultiplePhotos.length >= 10)}
+                disabled={isFinalizing || isProcessingGallery || (isMultiplePhotosStep && (() => {
+                  if (currentStep?.label?.toLowerCase().includes('pneus dianteiros')) return currentMultiplePhotos.length >= 2;
+                  if (currentStep?.label?.toLowerCase().includes('plaqueta')) return currentMultiplePhotos.length >= 2;
+                  if (currentStep?.label?.toLowerCase().includes('detalhes')) return currentMultiplePhotos.length >= 10;
+                  return false;
+                })())}
               >
                 {isProcessingGallery ? (
                   <>
@@ -589,7 +652,31 @@ export default function GuidedInspection() {
           {/* Summary */}
           <div className="mt-6 p-4 bg-muted rounded-lg">
             <p className="text-sm text-muted-foreground text-center">
-              {photos.size} de {steps.length} fotos capturadas
+              {(() => {
+                // Contar etapas completas (considerando múltiplas fotos)
+                let completedSteps = 0;
+                steps.forEach(step => {
+                  const isMultiple = step.label?.toLowerCase().includes('mínimo') || 
+                                    step.label?.toLowerCase().includes('até') ||
+                                    step.label?.toLowerCase().includes('plaqueta');
+                  
+                  if (isMultiple) {
+                    const stepPhotos = multiplePhotos.get(step.id) || [];
+                    let minRequired = 1;
+                    if (step.label?.toLowerCase().includes('pneus dianteiros')) {
+                      minRequired = 2;
+                    }
+                    if (stepPhotos.length >= minRequired) {
+                      completedSteps++;
+                    }
+                  } else {
+                    if (photos.has(step.id)) {
+                      completedSteps++;
+                    }
+                  }
+                });
+                return completedSteps;
+              })()} de {steps.length} etapas concluídas
             </p>
           </div>
         </main>

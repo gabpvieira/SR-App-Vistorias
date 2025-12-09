@@ -1,5 +1,5 @@
 import { useParams, Link, Navigate, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, User, FileText, Camera, Download, Loader2, Trash2 } from 'lucide-react';
+import { ArrowLeft, Calendar, User, FileText, Camera, Download, Loader2, Trash2, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Header } from '@/components/Header';
 import { InspectionTypeBadge } from '@/components/InspectionTypeBadge';
@@ -15,6 +15,7 @@ import { useState, useEffect } from 'react';
 import { getInspectionById, getPhotosByInspectionId } from '@/lib/supabase-queries';
 import { Inspection, InspectionPhoto } from '@/lib/supabase';
 import { supabase } from '@/lib/supabase';
+import { generateInspectionPDF } from '@/lib/pdf-generator';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,6 +40,7 @@ export default function InspectionDetail() {
   const [userName, setUserName] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
@@ -100,6 +102,41 @@ export default function InspectionDetail() {
       });
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!inspection || !photos.length) {
+      toast({
+        title: 'Não é possível gerar PDF',
+        description: 'A vistoria precisa ter pelo menos uma foto.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsGeneratingPDF(true);
+
+    try {
+      await generateInspectionPDF({
+        inspection,
+        photos,
+        userName,
+      });
+
+      toast({
+        title: 'PDF gerado com sucesso!',
+        description: 'O arquivo foi baixado para seu dispositivo.',
+      });
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error);
+      toast({
+        title: 'Erro ao gerar PDF',
+        description: 'Não foi possível gerar o relatório. Tente novamente.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsGeneratingPDF(false);
     }
   };
 
@@ -177,15 +214,71 @@ export default function InspectionDetail() {
                 <p className="text-sm text-muted-foreground mb-1">Vistoria #{inspection.id.substring(0, 8)}</p>
                 <h1 className="text-3xl font-bold text-foreground">{inspection.vehicle_plate || 'Sem placa'}</h1>
               </div>
-              <div className="flex items-center gap-3">
-                <InspectionTypeBadge type={inspection.type} />
+              
+              {/* Badges e Botões Uniformes - Flat Design */}
+              <div className="flex items-center gap-2">
+                {/* Badge Tipo de Vistoria */}
+                <div className={`
+                  inline-flex items-center justify-center
+                  h-9 px-4 rounded-md
+                  font-semibold text-sm
+                  transition-all duration-200
+                  ${inspection.type === 'troca' 
+                    ? 'bg-red-600 text-white hover:bg-red-700' 
+                    : 'bg-amber-500 text-white hover:bg-amber-600'
+                  }
+                `}>
+                  {inspection.type === 'troca' ? 'Troca' : 'Manutenção'}
+                </div>
+                
+                {/* Botão PDF */}
+                <button
+                  onClick={handleDownloadPDF}
+                  disabled={isGeneratingPDF || photos.length === 0}
+                  className={`
+                    inline-flex items-center justify-center
+                    h-9 px-4 rounded-md
+                    font-semibold text-sm
+                    transition-all duration-200
+                    ${isGeneratingPDF || photos.length === 0
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-red-600 text-white hover:bg-red-700 hover:shadow-md active:scale-95'
+                    }
+                  `}
+                >
+                  {isGeneratingPDF ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Gerando...
+                    </>
+                  ) : (
+                    <>
+                      <FileDown className="h-4 w-4 mr-2" />
+                      PDF
+                    </>
+                  )}
+                </button>
+                
+                {/* Botão Deletar (apenas gerente) */}
                 {user?.role === 'gerente' && (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="destructive" size="sm" disabled={isDeleting}>
+                      <button
+                        disabled={isDeleting}
+                        className={`
+                          inline-flex items-center justify-center
+                          h-9 px-4 rounded-md
+                          font-semibold text-sm
+                          transition-all duration-200
+                          ${isDeleting
+                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            : 'bg-red-600 text-white hover:bg-red-700 hover:shadow-md active:scale-95'
+                          }
+                        `}
+                      >
                         <Trash2 className="h-4 w-4 mr-2" />
                         Deletar
-                      </Button>
+                      </button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>

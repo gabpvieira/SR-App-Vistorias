@@ -119,7 +119,7 @@ Todos os campos UUID estão corretamente tipados:
 2. Login: joao@srcaminhoes.com.br / 12345678
 3. Nova Vistoria → Troca → Cavalo → ABC-1234
 4. Iniciar Vistoria Guiada
-5. Tire fotos para todas as 13 etapas
+5. Tire fotos para todas as 9 etapas
 6. Clique em "Finalizar Vistoria"
 7. ✅ Deve funcionar sem erros!
 

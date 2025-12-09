@@ -326,7 +326,7 @@ export default function NewInspection() {
                       <Label htmlFor="cavalo" className="cursor-pointer font-normal flex-1">
                         <div>
                           <p className="font-semibold">Cavalo</p>
-                          <p className="text-sm text-muted-foreground">13 etapas obrigatórias</p>
+                          <p className="text-sm text-muted-foreground">9 etapas obrigatórias</p>
                         </div>
                       </Label>
                     </div>

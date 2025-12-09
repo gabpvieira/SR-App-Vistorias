@@ -258,9 +258,19 @@ export async function uploadInspectionPhoto(
   stepOrder?: number
 ): Promise<string> {
   const fileExt = file.name.split('.').pop();
+  
+  // Sanitizar o label removendo caracteres especiais
+  const sanitizedLabel = label
+    .normalize('NFD') // Normalizar caracteres acentuados
+    .replace(/[\u0300-\u036f]/g, '') // Remover acentos
+    .replace(/[^\w\s-]/g, '') // Remover caracteres especiais exceto letras, números, espaços e hífens
+    .replace(/\s+/g, '_') // Substituir espaços por underscore
+    .replace(/_+/g, '_') // Remover underscores duplicados
+    .replace(/^_|_$/g, ''); // Remover underscores no início e fim
+  
   const fileName = stepOrder 
-    ? `${stepOrder}-${label.replace(/\s+/g, '_')}.${fileExt}`
-    : `${label.replace(/\s+/g, '_')}-${Date.now()}.${fileExt}`;
+    ? `${stepOrder}-${sanitizedLabel}.${fileExt}`
+    : `${sanitizedLabel}-${Date.now()}.${fileExt}`;
   
   const filePath = `inspections/${inspectionId}/${fileName}`;
 
@@ -449,9 +459,19 @@ export async function uploadAndSaveActivityPhoto(
 ): Promise<InspectionActivityPhoto> {
   // Upload to storage (usando o mesmo bucket)
   const fileExt = file.name.split('.').pop();
+  
+  // Sanitizar o label removendo caracteres especiais
+  const sanitizedLabel = label
+    .normalize('NFD') // Normalizar caracteres acentuados
+    .replace(/[\u0300-\u036f]/g, '') // Remover acentos
+    .replace(/[^\w\s-]/g, '') // Remover caracteres especiais exceto letras, números, espaços e hífens
+    .replace(/\s+/g, '_') // Substituir espaços por underscore
+    .replace(/_+/g, '_') // Remover underscores duplicados
+    .replace(/^_|_$/g, ''); // Remover underscores no início e fim
+  
   const fileName = stepOrder 
-    ? `activity-${activityId}-${stepOrder}-${label.replace(/\s+/g, '_')}.${fileExt}`
-    : `activity-${activityId}-${label.replace(/\s+/g, '_')}-${Date.now()}.${fileExt}`;
+    ? `activity-${activityId}-${stepOrder}-${sanitizedLabel}.${fileExt}`
+    : `activity-${activityId}-${sanitizedLabel}-${Date.now()}.${fileExt}`;
   
   const filePath = `inspections/${inspectionId}/activities/${fileName}`;
 

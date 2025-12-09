@@ -390,7 +390,7 @@ export default function Dashboard() {
                   {vendorInspections.length} vistoria{vendorInspections.length !== 1 ? 's' : ''} encontrada{vendorInspections.length !== 1 ? 's' : ''}
                 </p>
                 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
                   {vendorInspections.map((inspection) => (
                     <InspectionCard key={inspection.id} inspection={inspection} />
                   ))}
@@ -539,7 +539,7 @@ export default function Dashboard() {
                     {inspections.length} vistoria{inspections.length !== 1 ? 's' : ''} encontrada{inspections.length !== 1 ? 's' : ''}
                   </p>
                   
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
                     {inspections.map((inspection) => (
                       <InspectionCard key={inspection.id} inspection={inspection} />
                     ))}
@@ -887,7 +887,7 @@ export default function Dashboard() {
                         {inspections.length} vistoria{inspections.length !== 1 ? 's' : ''} encontrada{inspections.length !== 1 ? 's' : ''}
                       </p>
                       
-                      <div className="grid grid-cols-1 gap-4">
+                      <div className="grid grid-cols-1 gap-6">
                         {inspections.map((inspection) => (
                           <InspectionCard key={inspection.id} inspection={inspection} />
                         ))}
