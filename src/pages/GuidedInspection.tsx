@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Camera, Upload, Check, Loader2, X } from 'lucide-react';
+import { ArrowLeft, Camera, Upload, Check, Loader2, X, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Header } from '@/components/Header';
 import { Progress } from '@/components/ui/progress';
@@ -13,6 +13,12 @@ import { InspectionStepTemplate, VehicleModel } from '@/lib/supabase';
 import { Helmet } from 'react-helmet-async';
 import { useToast } from '@/hooks/use-toast';
 import { useWatermark } from '@/hooks/use-watermark';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface CapturedPhoto {
   stepId: string;
@@ -21,10 +27,28 @@ interface CapturedPhoto {
   uploaded: boolean;
 }
 
-interface MultiplePhotosStep {
-  stepId: string;
-  photos: CapturedPhoto[];
-}
+// Helper para determinar configuração de fotos por etapa
+const getPhotoConfig = (label: string | undefined) => {
+  const lowerLabel = label?.toLowerCase() || '';
+  
+  if (lowerLabel.includes('pneus dianteiros')) {
+    return { min: 2, max: 2, isMultiple: true };
+  }
+  if (lowerLabel.includes('pneus traseiros')) {
+    return { min: 6, max: 6, isMultiple: true };
+  }
+  if (lowerLabel.includes('interna lado motorista') && !lowerLabel.includes('cabine')) {
+    return { min: 2, max: 2, isMultiple: true };
+  }
+  if (lowerLabel.includes('interna lado passageiro')) {
+    return { min: 1, max: 2, isMultiple: true };
+  }
+  if (lowerLabel.includes('detalhes em observação')) {
+    return { min: 1, max: 10, isMultiple: true };
+  }
+  
+  return { min: 1, max: 1, isMultiple: false };
+};
 
 export default function GuidedInspection() {
   const [searchParams] = useSearchParams();
@@ -48,8 +72,14 @@ export default function GuidedInspection() {
   const [isProcessingGallery, setIsProcessingGallery] = useState(false);
   const [isFinalizing, setIsFinalizing] = useState(false);
   const [showCameraModal, setShowCameraModal] = useState(false);
+  const [showExampleModal, setShowExampleModal] = useState(false);
 
   const { addWatermark } = useWatermark({ autoRequestPermission: true });
+
+  // URL da imagem de exemplo baseada no índice da etapa (apenas para cavalo)
+  const exampleImageUrl = vehicleModel === 'cavalo' && currentStepIndex < 15 
+    ? `/exemplos-etapas/${currentStepIndex + 1}.png` 
+    : null;
 
   useEffect(() => {
     async function loadSteps() {
@@ -86,10 +116,9 @@ export default function GuidedInspection() {
   const progress = steps.length > 0 ? ((currentStepIndex + 1) / steps.length) * 100 : 0;
   const isLastStep = currentStepIndex === steps.length - 1;
   
-  // Verificar se a etapa atual permite múltiplas fotos
-  const isMultiplePhotosStep = currentStep?.label?.toLowerCase().includes('mínimo') || 
-                                currentStep?.label?.toLowerCase().includes('até') ||
-                                currentStep?.label?.toLowerCase().includes('plaqueta');
+  // Configuração de fotos da etapa atual
+  const photoConfig = getPhotoConfig(currentStep?.label);
+  const isMultiplePhotosStep = photoConfig.isMultiple;
   
   const currentPhoto = currentStep ? photos.get(currentStep.id) : null;
   const currentMultiplePhotos = currentStep ? multiplePhotos.get(currentStep.id) || [] : [];
@@ -130,20 +159,10 @@ export default function GuidedInspection() {
         // Etapa com múltiplas fotos
         const currentPhotos = multiplePhotos.get(currentStep.id) || [];
         
-        // Determinar limite de fotos baseado na etapa
-        let maxPhotos = 10;
-        if (currentStep.label?.toLowerCase().includes('pneus dianteiros')) {
-          maxPhotos = 2; // Pneus dianteiros: máximo 2 fotos
-        } else if (currentStep.label?.toLowerCase().includes('plaqueta')) {
-          maxPhotos = 2; // Plaqueta: máximo 2 fotos
-        } else if (currentStep.label?.toLowerCase().includes('detalhes')) {
-          maxPhotos = 10; // Detalhes: máximo 10 fotos
-        }
-        
-        if (currentPhotos.length >= maxPhotos) {
+        if (currentPhotos.length >= photoConfig.max) {
           toast({
             title: 'Limite atingido',
-            description: `Máximo de ${maxPhotos} foto(s) por etapa`,
+            description: `Máximo de ${photoConfig.max} foto(s) por etapa`,
             variant: 'destructive',
           });
           setIsProcessingGallery(false);
@@ -203,24 +222,16 @@ export default function GuidedInspection() {
 
     const previewUrl = URL.createObjectURL(file);
     
-    if (isMultiplePhotosStep) {
+    const stepPhotoConfig = getPhotoConfig(currentStep.label);
+    
+    if (stepPhotoConfig.isMultiple) {
       // Etapa com múltiplas fotos
       const currentPhotos = multiplePhotos.get(currentStep.id) || [];
       
-      // Determinar limite de fotos baseado na etapa
-      let maxPhotos = 10;
-      if (currentStep.label?.toLowerCase().includes('pneus dianteiros')) {
-        maxPhotos = 2; // Pneus dianteiros: máximo 2 fotos
-      } else if (currentStep.label?.toLowerCase().includes('plaqueta')) {
-        maxPhotos = 2; // Plaqueta: máximo 2 fotos
-      } else if (currentStep.label?.toLowerCase().includes('detalhes')) {
-        maxPhotos = 10; // Detalhes: máximo 10 fotos
-      }
-      
-      if (currentPhotos.length >= maxPhotos) {
+      if (currentPhotos.length >= stepPhotoConfig.max) {
         toast({
           title: 'Limite atingido',
-          description: `Máximo de ${maxPhotos} foto(s) por etapa`,
+          description: `Máximo de ${stepPhotoConfig.max} foto(s) por etapa`,
           variant: 'destructive',
         });
         return;
@@ -253,20 +264,10 @@ export default function GuidedInspection() {
   const handleNext = () => {
     // Validar se tem fotos
     if (isMultiplePhotosStep) {
-      // Determinar mínimo de fotos baseado na etapa
-      let minPhotos = 1;
-      if (currentStep?.label?.toLowerCase().includes('pneus dianteiros')) {
-        minPhotos = 2; // Pneus dianteiros: mínimo 2 fotos
-      } else if (currentStep?.label?.toLowerCase().includes('plaqueta')) {
-        minPhotos = 1; // Plaqueta: mínimo 1 foto (até 2)
-      } else if (currentStep?.label?.toLowerCase().includes('detalhes')) {
-        minPhotos = 1; // Detalhes: mínimo 1 foto (até 10)
-      }
-      
-      if (currentMultiplePhotos.length < minPhotos) {
+      if (currentMultiplePhotos.length < photoConfig.min) {
         toast({
           title: 'Fotos insuficientes',
-          description: `Adicione pelo menos ${minPhotos} foto(s) antes de continuar.`,
+          description: `Adicione pelo menos ${photoConfig.min} foto(s) antes de continuar.`,
           variant: 'destructive',
         });
         return;
@@ -335,18 +336,11 @@ export default function GuidedInspection() {
 
     // Check if all steps have photos (considerando etapas com múltiplas fotos)
     const missingSteps = steps.filter(step => {
-      const isMultiple = step.label?.toLowerCase().includes('mínimo') || 
-                        step.label?.toLowerCase().includes('até') ||
-                        step.label?.toLowerCase().includes('plaqueta');
+      const stepConfig = getPhotoConfig(step.label);
       
-      if (isMultiple) {
+      if (stepConfig.isMultiple) {
         const stepPhotos = multiplePhotos.get(step.id) || [];
-        // Determinar mínimo baseado na etapa
-        let minRequired = 1;
-        if (step.label?.toLowerCase().includes('pneus dianteiros')) {
-          minRequired = 2;
-        }
-        return stepPhotos.length < minRequired;
+        return stepPhotos.length < stepConfig.min;
       } else {
         return !photos.has(step.id);
       }
@@ -484,7 +478,20 @@ export default function GuidedInspection() {
           {/* Current Step */}
           <div className="bg-card border rounded-lg p-6 mb-6">
             <div className="mb-6">
-              <h3 className="text-xl font-bold mb-2">{currentStep.label}</h3>
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <h3 className="text-xl font-bold">{currentStep.label}</h3>
+                {exampleImageUrl && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowExampleModal(true)}
+                    className="shrink-0 text-xs h-8 px-2"
+                  >
+                    <Eye className="h-3.5 w-3.5 mr-1" />
+                    Ver Exemplo
+                  </Button>
+                )}
+              </div>
               <p className="text-muted-foreground">{currentStep.instruction}</p>
             </div>
 
@@ -520,9 +527,10 @@ export default function GuidedInspection() {
                         Nenhuma foto capturada
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {currentStep.label?.toLowerCase().includes('pneus dianteiros') && 'Mínimo: 2 fotos | Máximo: 2 fotos'}
-                        {currentStep.label?.toLowerCase().includes('plaqueta') && 'Mínimo: 1 foto | Máximo: 2 fotos'}
-                        {currentStep.label?.toLowerCase().includes('detalhes') && 'Mínimo: 1 foto | Máximo: 10 fotos'}
+                        {photoConfig.min === photoConfig.max 
+                          ? `Quantidade: ${photoConfig.min} foto(s)`
+                          : `Mínimo: ${photoConfig.min} | Máximo: ${photoConfig.max} fotos`
+                        }
                       </p>
                     </div>
                   </div>
@@ -531,11 +539,10 @@ export default function GuidedInspection() {
                 {currentMultiplePhotos.length > 0 && (
                   <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg mb-4">
                     <p className="text-sm text-blue-800 dark:text-blue-200">
-                      {currentMultiplePhotos.length} foto(s) adicionada(s)
-                      {currentStep.label?.toLowerCase().includes('pneus dianteiros') && currentMultiplePhotos.length < 2 && ` - Mínimo: 2 fotos`}
-                      {currentStep.label?.toLowerCase().includes('pneus dianteiros') && currentMultiplePhotos.length >= 2 && ` - Completo`}
-                      {currentStep.label?.toLowerCase().includes('plaqueta') && currentMultiplePhotos.length >= 2 && ` - Limite atingido`}
-                      {currentStep.label?.toLowerCase().includes('detalhes') && currentMultiplePhotos.length >= 10 && ` - Limite atingido`}
+                      {currentMultiplePhotos.length} de {photoConfig.max} foto(s)
+                      {currentMultiplePhotos.length < photoConfig.min && ` - Faltam ${photoConfig.min - currentMultiplePhotos.length}`}
+                      {currentMultiplePhotos.length >= photoConfig.min && currentMultiplePhotos.length < photoConfig.max && ` - Mínimo atingido ✓`}
+                      {currentMultiplePhotos.length >= photoConfig.max && ` - Completo ✓`}
                     </p>
                   </div>
                 )}
@@ -566,12 +573,7 @@ export default function GuidedInspection() {
                 onClick={handleCameraCapture}
                 variant="outline"
                 className="w-full"
-                disabled={isFinalizing || (isMultiplePhotosStep && (() => {
-                  if (currentStep?.label?.toLowerCase().includes('pneus dianteiros')) return currentMultiplePhotos.length >= 2;
-                  if (currentStep?.label?.toLowerCase().includes('plaqueta')) return currentMultiplePhotos.length >= 2;
-                  if (currentStep?.label?.toLowerCase().includes('detalhes')) return currentMultiplePhotos.length >= 10;
-                  return false;
-                })())}
+                disabled={isFinalizing || (isMultiplePhotosStep && currentMultiplePhotos.length >= photoConfig.max)}
               >
                 <Camera className="h-4 w-4 mr-2" />
                 {isMultiplePhotosStep && currentMultiplePhotos.length > 0 ? 'Tirar Mais' : 'Tirar Foto'}
@@ -581,12 +583,7 @@ export default function GuidedInspection() {
                 onClick={() => document.getElementById('file-input')?.click()}
                 variant="outline"
                 className="w-full"
-                disabled={isFinalizing || isProcessingGallery || (isMultiplePhotosStep && (() => {
-                  if (currentStep?.label?.toLowerCase().includes('pneus dianteiros')) return currentMultiplePhotos.length >= 2;
-                  if (currentStep?.label?.toLowerCase().includes('plaqueta')) return currentMultiplePhotos.length >= 2;
-                  if (currentStep?.label?.toLowerCase().includes('detalhes')) return currentMultiplePhotos.length >= 10;
-                  return false;
-                })())}
+                disabled={isFinalizing || isProcessingGallery || (isMultiplePhotosStep && currentMultiplePhotos.length >= photoConfig.max)}
               >
                 {isProcessingGallery ? (
                   <>
@@ -656,17 +653,11 @@ export default function GuidedInspection() {
                 // Contar etapas completas (considerando múltiplas fotos)
                 let completedSteps = 0;
                 steps.forEach(step => {
-                  const isMultiple = step.label?.toLowerCase().includes('mínimo') || 
-                                    step.label?.toLowerCase().includes('até') ||
-                                    step.label?.toLowerCase().includes('plaqueta');
+                  const stepConfig = getPhotoConfig(step.label);
                   
-                  if (isMultiple) {
+                  if (stepConfig.isMultiple) {
                     const stepPhotos = multiplePhotos.get(step.id) || [];
-                    let minRequired = 1;
-                    if (step.label?.toLowerCase().includes('pneus dianteiros')) {
-                      minRequired = 2;
-                    }
-                    if (stepPhotos.length >= minRequired) {
+                    if (stepPhotos.length >= stepConfig.min) {
                       completedSteps++;
                     }
                   } else {
@@ -689,6 +680,24 @@ export default function GuidedInspection() {
           title={currentStep.label}
           description={currentStep.instruction}
         />
+
+        {/* Modal de Exemplo */}
+        <Dialog open={showExampleModal} onOpenChange={setShowExampleModal}>
+          <DialogContent className="max-w-lg p-4">
+            <DialogHeader>
+              <DialogTitle className="text-base">Exemplo: {currentStep.label}</DialogTitle>
+            </DialogHeader>
+            {exampleImageUrl && (
+              <div className="mt-2">
+                <img
+                  src={exampleImageUrl}
+                  alt={`Exemplo - ${currentStep.label}`}
+                  className="w-full h-auto rounded-lg border"
+                />
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </>
   );
