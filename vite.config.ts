@@ -17,7 +17,7 @@ export default defineConfig(({ mode }) => ({
       // Usar generateSW para maior compatibilidade
       strategies: "generateSW",
       registerType: "autoUpdate",
-      injectRegister: false, // Registro manual para maior controle
+      injectRegister: "auto", // Registro automático no HTML
       
       // Assets para incluir no precache
       includeAssets: [
