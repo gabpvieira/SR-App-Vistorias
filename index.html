@@ -2,45 +2,97 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
     
     <!-- Bloqueio de Indexação - Sistema Interno -->
     <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex" />
     <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex" />
     <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex" />
-    <meta name="slurp" content="noindex, nofollow, noarchive, nosnippet, noimageindex" />
-    <meta name="duckduckbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex" />
     
-    <!-- Título genérico sem palavras-chave sensíveis -->
+    <!-- Título genérico -->
     <title>Sistema Interno</title>
-    
-    <!-- Sem descrição pública -->
     <meta name="description" content="Acesso restrito" />
     
-    <!-- Theme color para PWA -->
+    <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#000000" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="application-name" content="SR Vistorias" />
+    
+    <!-- iOS PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="SR Vistorias" />
+    
+    <!-- Windows PWA Meta Tags -->
+    <meta name="msapplication-TileColor" content="#000000" />
+    <meta name="msapplication-TileImage" content="/icon-144.png" />
+    <meta name="msapplication-config" content="none" />
     
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon.png" />
+    
+    <!-- Apple Touch Icons -->
     <link rel="apple-touch-icon" href="/icon-192.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/icon-152.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icon-192.png" />
+    <link rel="apple-touch-icon" sizes="167x167" href="/icon-192.png" />
     
     <!-- PWA Manifest -->
-    <link rel="manifest" href="/manifest.json" />
+    <link rel="manifest" href="/manifest.json" crossorigin="use-credentials" />
     
-    <!-- Bloquear compartilhamento social - Sem Open Graph -->
+    <!-- Preconnect para performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    
+    <!-- Bloquear compartilhamento social -->
     <meta property="og:title" content="Acesso Restrito" />
     <meta property="og:description" content="Sistema de uso interno" />
     <meta property="og:type" content="website" />
-    <meta property="og:robots" content="noindex, nofollow" />
-    
-    <!-- Bloquear Twitter Cards -->
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="Acesso Restrito" />
-    <meta name="twitter:robots" content="noindex, nofollow" />
+    
+    <!-- Splash Screens iOS (opcional) -->
+    <link rel="apple-touch-startup-image" href="/icon-512.png" />
+    
+    <!-- Prevenir zoom em inputs no iOS -->
+    <style>
+      @supports (-webkit-touch-callout: none) {
+        input, select, textarea {
+          font-size: 16px !important;
+        }
+      }
+      #root:empty {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        background: #ffffff;
+      }
+      #root:empty::after {
+        content: '';
+        width: 40px;
+        height: 40px;
+        border: 3px solid #e5e7eb;
+        border-top-color: #000000;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+    </style>
   </head>
 
   <body>
     <div id="root"></div>
+    <noscript>
+      <div style="padding: 20px; text-align: center; font-family: system-ui, sans-serif;">
+        <h1>JavaScript Necessário</h1>
+        <p>Este aplicativo requer JavaScript para funcionar.</p>
+      </div>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
