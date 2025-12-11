@@ -2,13 +2,13 @@ import { Link } from 'react-router-dom';
 import { Camera } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { InspectionTypeBadge } from './InspectionTypeBadge';
-import { OptimizedImage } from './OptimizedImage';
 import { Inspection } from '@/lib/supabase';
 import { formatShortDate } from '@/lib/date-utils';
 import { useAuth } from '@/contexts/AuthContext';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { getPhotosByInspectionId } from '@/lib/supabase-queries';
 import { supabase } from '@/lib/supabase';
+import { getThumbnailUrl } from '@/lib/image-utils';
 
 interface InspectionCardProps {
   inspection: Inspection;
@@ -24,7 +24,8 @@ export function InspectionCard({ inspection }: InspectionCardProps) {
   const [photoCount, setPhotoCount] = useState(0);
   const [firstPhoto, setFirstPhoto] = useState<string | null>(null);
   const [userName, setUserName] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -73,8 +74,6 @@ export function InspectionCard({ inspection }: InspectionCardProps) {
         }
       } catch (error) {
         console.error('Erro ao carregar dados:', error);
-      } finally {
-        if (isMounted) setIsLoading(false);
       }
     }
 
@@ -85,24 +84,37 @@ export function InspectionCard({ inspection }: InspectionCardProps) {
     };
   }, [inspection.id, inspection.user_id, isManager]);
 
-  // Placeholder para imagem
-  const imagePlaceholder = useMemo(() => (
-    <Camera className="h-12 w-12 text-muted-foreground/30" />
-  ), []);
+  // Gerar URL do thumbnail (400px, qualidade 60%)
+  const thumbnailUrl = firstPhoto ? getThumbnailUrl(firstPhoto, 400, 60) : null;
 
   return (
     <Link to={`/vistoria/${inspection.id}`} className="group block">
       <Card className="overflow-hidden border-2 hover:border-primary/50 hover:shadow-xl transition-all duration-300 bg-card h-full">
         {/* Image Container */}
         <div className="aspect-[4/3] relative overflow-hidden bg-gradient-to-br from-muted to-muted/50">
-          <OptimizedImage
-            src={firstPhoto}
-            alt={`Vistoria ${inspection.vehicle_plate}`}
-            className="w-full h-full group-hover:scale-105 transition-transform duration-300"
-            width={400}
-            quality={70}
-            placeholder={imagePlaceholder}
-          />
+          {thumbnailUrl && !imageError ? (
+            <>
+              {/* Skeleton enquanto carrega */}
+              {!imageLoaded && (
+                <div className="absolute inset-0 bg-muted animate-pulse" />
+              )}
+              <img
+                src={thumbnailUrl}
+                alt={`Vistoria ${inspection.vehicle_plate}`}
+                className={`w-full h-full object-cover group-hover:scale-105 transition-all duration-300 ${
+                  imageLoaded ? 'opacity-100' : 'opacity-0'
+                }`}
+                loading="lazy"
+                decoding="async"
+                onLoad={() => setImageLoaded(true)}
+                onError={() => setImageError(true)}
+              />
+            </>
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <Camera className="h-12 w-12 text-muted-foreground/30" />
+            </div>
+          )}
           
           {/* Badge Overlay */}
           <div className="absolute top-3 right-3 z-10">
