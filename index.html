@@ -40,7 +40,7 @@
     <link rel="apple-touch-icon" sizes="167x167" href="/icon-192.png" />
     
     <!-- PWA Manifest -->
-    <link rel="manifest" href="/manifest.json" crossorigin="use-credentials" />
+    <link rel="manifest" href="/manifest.json" />
     
     <!-- Preconnect para performance -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -94,5 +94,20 @@
       </div>
     </noscript>
     <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/sw.js', { scope: '/' })
+            .then(function(registration) {
+              console.log('[App] SW registered:', registration.scope);
+            })
+            .catch(function(error) {
+              console.log('[App] SW registration failed:', error);
+            });
+        });
+      }
+    </script>
   </body>
 </html>
