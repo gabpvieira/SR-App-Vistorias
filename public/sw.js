@@ -1,13 +1,21 @@
 /**
  * Service Worker - SR Vistorias PWA
- * Versão otimizada para performance de imagens
+ * Versão 6 - Compatível com Chrome 109+ (Windows 7)
+ * 
+ * Características:
+ * - Versionamento manual de cache
+ * - Fallbacks para APIs não suportadas
+ * - Sem uso de APIs modernas não disponíveis no Chrome 109
+ * - skipWaiting() e clients.claim() para atualização automática
  */
 
-const CACHE_NAME = 'sr-vistorias-v5';
-const OFFLINE_URL = '/offline.html';
+// Versionamento de cache - incrementar ao fazer deploy
+var CACHE_VERSION = 'v6';
+var CACHE_NAME = 'sr-vistorias-' + CACHE_VERSION;
+var OFFLINE_URL = '/offline.html';
 
-// Assets estáticos para precache (apenas arquivos locais essenciais)
-const PRECACHE_URLS = [
+// Assets para precache
+var PRECACHE_URLS = [
   '/',
   '/index.html',
   '/offline.html',
@@ -17,129 +25,179 @@ const PRECACHE_URLS = [
   '/icon-512.png'
 ];
 
-/**
- * Verifica se a URL deve ser completamente ignorada pelo SW
- * Retorna true para URLs que NUNCA devem ser interceptadas
- */
+// URLs que NUNCA devem ser interceptadas
+var BYPASS_PATTERNS = [
+  'supabase.co',
+  'supabase.in',
+  '/auth/',
+  '/rest/',
+  '/storage/',
+  '/realtime/',
+  '/functions/',
+  '/api/'
+];
+
 function shouldBypass(url) {
-  // Ignorar todas as URLs do Supabase (API, Storage, Auth, etc.)
-  if (url.includes('supabase.co') || url.includes('supabase.in')) {
-    return true;
+  for (var i = 0; i < BYPASS_PATTERNS.length; i++) {
+    if (url.indexOf(BYPASS_PATTERNS[i]) !== -1) {
+      return true;
+    }
   }
-  
-  // Ignorar outras APIs externas
-  if (url.includes('/api/') || url.includes('/rest/') || url.includes('/auth/')) {
-    return true;
-  }
-  
   return false;
 }
 
-/**
- * Verifica se é um asset estático local que pode ser cacheado
- */
-function isStaticAsset(url, origin) {
-  const urlObj = new URL(url);
-  
-  // Apenas assets do mesmo origin
-  if (urlObj.origin !== origin) {
+function isLocalStaticAsset(url, origin) {
+  try {
+    var urlObj = new URL(url);
+    if (urlObj.origin !== origin) {
+      return false;
+    }
+    var staticExtensions = ['.js', '.css', '.woff2', '.woff', '.ttf', '.ico'];
+    for (var i = 0; i < staticExtensions.length; i++) {
+      if (url.indexOf(staticExtensions[i]) !== -1) {
+        return true;
+      }
+    }
+  } catch (e) {
     return false;
   }
-  
-  // Apenas arquivos estáticos (JS, CSS, fontes, ícones locais)
-  const staticExtensions = ['.js', '.css', '.woff', '.woff2', '.ttf', '.ico'];
-  return staticExtensions.some(ext => url.includes(ext));
+  return false;
 }
 
-// INSTALL
-self.addEventListener('install', (event) => {
+self.addEventListener('install', function(event) {
+  console.log('[SW] Installing version ' + CACHE_VERSION);
+  
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(PRECACHE_URLS))
-      .then(() => self.skipWaiting())
-      .catch(err => console.error('[SW] Install error:', err))
+      .then(function(cache) {
+        var promises = PRECACHE_URLS.map(function(url) {
+          return cache.add(url).catch(function(err) {
+            console.warn('[SW] Failed to cache: ' + url);
+          });
+        });
+        return Promise.all(promises);
+      })
+      .then(function() {
+        return self.skipWaiting();
+      })
   );
 });
 
-// ACTIVATE
-self.addEventListener('activate', (event) => {
+self.addEventListener('activate', function(event) {
+  console.log('[SW] Activating version ' + CACHE_VERSION);
+  
   event.waitUntil(
     caches.keys()
-      .then(names => Promise.all(
-        names
-          .filter(name => name !== CACHE_NAME)
-          .map(name => caches.delete(name))
-      ))
-      .then(() => self.clients.claim())
+      .then(function(cacheNames) {
+        var deletePromises = [];
+        for (var i = 0; i < cacheNames.length; i++) {
+          var name = cacheNames[i];
+          if (name.indexOf('sr-vistorias-') === 0 && name !== CACHE_NAME) {
+            deletePromises.push(caches.delete(name));
+          }
+        }
+        return Promise.all(deletePromises);
+      })
+      .then(function() {
+        return self.clients.claim();
+      })
   );
 });
 
-// FETCH - Estratégia simplificada
-self.addEventListener('fetch', (event) => {
-  const { request } = event;
-  const url = request.url;
+self.addEventListener('fetch', function(event) {
+  var request = event.request;
+  var url = request.url;
   
-  // 1. BYPASS: Nunca interceptar Supabase ou APIs externas
   if (shouldBypass(url)) {
-    return; // Deixa o navegador lidar diretamente
+    return;
   }
   
-  // 2. Ignorar requisições não-GET
   if (request.method !== 'GET') {
     return;
   }
   
-  // 3. Ignorar extensões de navegador
-  if (url.startsWith('chrome-extension://') || url.startsWith('moz-extension://')) {
+  if (url.indexOf('chrome-extension://') === 0 || url.indexOf('moz-extension://') === 0) {
     return;
   }
   
-  // 4. Para navegação (HTML), usar Network First
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)
-        .catch(() => caches.match('/index.html'))
-    );
-    return;
-  }
-  
-  // 5. Para assets estáticos locais, usar Cache First
-  if (isStaticAsset(url, self.location.origin)) {
-    event.respondWith(
-      caches.match(request)
-        .then(cached => {
-          if (cached) return cached;
-          
-          return fetch(request).then(response => {
-            if (response && response.status === 200) {
-              const clone = response.clone();
-              caches.open(CACHE_NAME).then(cache => cache.put(request, clone));
-            }
-            return response;
+        .then(function(response) {
+          if (response && response.status === 200) {
+            var clone = response.clone();
+            caches.open(CACHE_NAME).then(function(cache) {
+              cache.put(request, clone);
+            });
+          }
+          return response;
+        })
+        .catch(function() {
+          return caches.match(request).then(function(cached) {
+            return cached || caches.match('/index.html');
           });
         })
     );
     return;
   }
   
-  // 6. Para todo o resto (imagens externas, etc.), NÃO interceptar
-  // Deixa o navegador lidar diretamente para máxima performance
+  if (isLocalStaticAsset(url, self.location.origin)) {
+    event.respondWith(
+      caches.match(request).then(function(cached) {
+        if (cached) {
+          fetch(request).then(function(response) {
+            if (response && response.status === 200) {
+              caches.open(CACHE_NAME).then(function(cache) {
+                cache.put(request, response);
+              });
+            }
+          }).catch(function() {});
+          return cached;
+        }
+        
+        return fetch(request).then(function(response) {
+          if (response && response.status === 200) {
+            var clone = response.clone();
+            caches.open(CACHE_NAME).then(function(cache) {
+              cache.put(request, clone);
+            });
+          }
+          return response;
+        }).catch(function() {
+          return caches.match(OFFLINE_URL);
+        });
+      })
+    );
+    return;
+  }
 });
 
-// MESSAGE
-self.addEventListener('message', (event) => {
-  if (event.data?.type === 'SKIP_WAITING') {
+self.addEventListener('message', function(event) {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
 });
 
-// PUSH
-self.addEventListener('push', (event) => {
-  const data = event.data?.json() || { title: 'SR Vistorias', body: 'Nova notificação' };
+self.addEventListener('push', function(event) {
+  if (!self.registration || typeof self.registration.showNotification !== 'function') {
+    return;
+  }
+  
+  var data = { title: 'SR Vistorias', body: 'Nova notificação' };
+  
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch (e) {
+      try {
+        data.body = event.data.text();
+      } catch (e2) {}
+    }
+  }
   
   event.waitUntil(
-    self.registration.showNotification(data.title, {
-      body: data.body,
+    self.registration.showNotification(data.title || 'SR Vistorias', {
+      body: data.body || 'Nova notificação',
       icon: '/icon-192.png',
       badge: '/icon-192.png',
       data: { url: data.url || '/' }
@@ -147,19 +205,28 @@ self.addEventListener('push', (event) => {
   );
 });
 
-// NOTIFICATION CLICK
-self.addEventListener('notificationclick', (event) => {
+self.addEventListener('notificationclick', function(event) {
   event.notification.close();
+  
+  var urlToOpen = '/';
+  if (event.notification.data && event.notification.data.url) {
+    urlToOpen = event.notification.data.url;
+  }
   
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
-      .then(clientList => {
-        for (const client of clientList) {
-          if ('focus' in client) return client.focus();
+      .then(function(clientList) {
+        for (var i = 0; i < clientList.length; i++) {
+          var client = clientList[i];
+          if (typeof client.focus === 'function') {
+            return client.focus();
+          }
         }
-        return clients.openWindow(event.notification.data?.url || '/');
+        if (typeof clients.openWindow === 'function') {
+          return clients.openWindow(urlToOpen);
+        }
       })
   );
 });
 
-console.log('[SW] Service Worker v5 loaded - Optimized for image performance');
+console.log('[SW] Service Worker ' + CACHE_VERSION + ' loaded');
