@@ -1,45 +1,67 @@
-import { useState } from 'react';
-import { X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Download } from 'lucide-react';
+import { useState, useCallback, memo } from 'react';
+import { X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Download, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { OptimizedImage } from '@/components/OptimizedImage';
+import { getSupabaseThumbnailUrl } from '@/lib/image-optimizer';
 
 interface PhotoGalleryProps {
   photos: string[];
   className?: string;
+  /** Qualidade das thumbnails (0-100) */
+  thumbnailQuality?: number;
+  /** Colunas no grid */
+  columns?: 2 | 3 | 4;
 }
 
-export function PhotoGallery({ photos, className }: PhotoGalleryProps) {
+export const PhotoGallery = memo(function PhotoGallery({ 
+  photos, 
+  className,
+  thumbnailQuality = 60,
+  columns = 4
+}: PhotoGalleryProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [zoom, setZoom] = useState(1);
   const [panPosition, setPanPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [isImageLoading, setIsImageLoading] = useState(true);
 
-  const openLightbox = (index: number) => {
+  // Grid columns classes
+  const gridCols = {
+    2: 'grid-cols-2',
+    3: 'grid-cols-2 md:grid-cols-3',
+    4: 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4',
+  };
+
+  const openLightbox = useCallback((index: number) => {
     setCurrentIndex(index);
     setZoom(1);
     setPanPosition({ x: 0, y: 0 });
+    setIsImageLoading(true);
     setLightboxOpen(true);
-  };
+  }, []);
 
-  const closeLightbox = () => {
+  const closeLightbox = useCallback(() => {
     setLightboxOpen(false);
     setZoom(1);
     setPanPosition({ x: 0, y: 0 });
-  };
+  }, []);
 
-  const goToPrevious = () => {
+  const goToPrevious = useCallback(() => {
     setCurrentIndex((prev) => (prev === 0 ? photos.length - 1 : prev - 1));
     setZoom(1);
     setPanPosition({ x: 0, y: 0 });
-  };
+    setIsImageLoading(true);
+  }, [photos.length]);
 
-  const goToNext = () => {
+  const goToNext = useCallback(() => {
     setCurrentIndex((prev) => (prev === photos.length - 1 ? 0 : prev + 1));
     setZoom(1);
     setPanPosition({ x: 0, y: 0 });
-  };
+    setIsImageLoading(true);
+  }, [photos.length]);
 
   const handleZoom = (delta: number, centerX?: number, centerY?: number) => {
     setZoom((prevZoom) => {
@@ -171,20 +193,40 @@ export function PhotoGallery({ photos, className }: PhotoGalleryProps) {
     if (e.key === 'Escape') closeLightbox();
   };
 
+  // Gerar URL otimizada para thumbnail
+  const getThumbnailUrl = useCallback((url: string) => {
+    if (url.includes('supabase.co/storage') || url.includes('supabase.in/storage')) {
+      return getSupabaseThumbnailUrl(url, 400, thumbnailQuality);
+    }
+    return url;
+  }, [thumbnailQuality]);
+
+  // Gerar URL de alta qualidade para lightbox
+  const getFullSizeUrl = useCallback((url: string) => {
+    if (url.includes('supabase.co/storage') || url.includes('supabase.in/storage')) {
+      return getSupabaseThumbnailUrl(url, 1920, 85);
+    }
+    return url;
+  }, []);
+
   return (
     <>
-      <div className={cn('grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3', className)}>
+      <div className={cn('grid gap-3', gridCols[columns], className)}>
         {photos.map((photo, index) => (
           <button
-            key={index}
+            key={`${photo}-${index}`}
             onClick={() => openLightbox(index)}
             className="aspect-[4/3] rounded-lg overflow-hidden bg-muted hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
           >
-            <img
-              src={photo}
+            <OptimizedImage
+              src={getThumbnailUrl(photo)}
               alt={`Foto ${index + 1}`}
-              className="w-full h-full object-cover"
-              loading="lazy"
+              layout="thumbnail"
+              quality={thumbnailQuality}
+              aspectRatio="4/3"
+              className="w-full h-full"
+              showSkeleton={true}
+              fadeDuration={200}
             />
           </button>
         ))}
@@ -261,16 +303,25 @@ export function PhotoGallery({ photos, className }: PhotoGalleryProps) {
               touchAction: zoom > 1 ? 'none' : 'auto',
             }}
           >
+            {/* Loading indicator */}
+            {isImageLoading && (
+              <div className="absolute inset-0 flex items-center justify-center z-10">
+                <Loader2 className="h-8 w-8 text-background animate-spin" />
+              </div>
+            )}
             <img
-              src={photos[currentIndex]}
+              src={getFullSizeUrl(photos[currentIndex])}
               alt={`Foto ${currentIndex + 1}`}
               className="max-h-full max-w-full object-contain select-none pointer-events-none"
               style={{ 
                 transform: `translate(${panPosition.x}px, ${panPosition.y}px) scale(${zoom})`,
                 transition: isDragging ? 'none' : 'transform 0.15s ease-out',
                 transformOrigin: 'center center',
+                opacity: isImageLoading ? 0 : 1,
               }}
               draggable={false}
+              onLoad={() => setIsImageLoading(false)}
+              onError={() => setIsImageLoading(false)}
             />
           </div>
 
@@ -299,4 +350,4 @@ export function PhotoGallery({ photos, className }: PhotoGalleryProps) {
       )}
     </>
   );
-}
+});

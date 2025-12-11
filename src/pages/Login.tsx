@@ -81,6 +81,9 @@ export default function Login() {
               src="/logo SR.png" 
               alt="SR Caminhões" 
               className="h-20 object-contain"
+              loading="eager"
+              decoding="async"
+              fetchPriority="high"
             />
           </div>
 

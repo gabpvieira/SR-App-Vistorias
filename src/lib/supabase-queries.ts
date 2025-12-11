@@ -251,13 +251,47 @@ export async function getAllStepTemplates() {
 // STORAGE QUERIES
 // ============================================
 
+import { compressForUpload, supportsWebP } from './image-utils';
+
+/**
+ * Comprime imagem antes do upload se necessário
+ */
+async function optimizeImageForUpload(file: File): Promise<File> {
+  // Não comprimir se já for pequeno (< 500KB)
+  if (file.size < 500 * 1024) {
+    return file;
+  }
+
+  try {
+    const { file: compressedFile } = await compressForUpload(file, {
+      maxWidth: 1920,
+      maxHeight: 1440,
+      quality: 0.8,
+      format: supportsWebP() ? 'webp' : 'jpeg',
+    });
+    
+    console.log(`[Image Optimization] ${file.name}: ${(file.size / 1024).toFixed(0)}KB → ${(compressedFile.size / 1024).toFixed(0)}KB (${Math.round((1 - compressedFile.size / file.size) * 100)}% reduction)`);
+    
+    return compressedFile;
+  } catch (error) {
+    console.warn('[Image Optimization] Falha na compressão, usando original:', error);
+    return file;
+  }
+}
+
 export async function uploadInspectionPhoto(
   inspectionId: string,
   file: File,
   label: string,
   stepOrder?: number
 ): Promise<string> {
-  const fileExt = file.name.split('.').pop();
+  // Otimizar imagem antes do upload
+  const optimizedFile = await optimizeImageForUpload(file);
+  
+  // Determinar extensão baseada no tipo do arquivo otimizado
+  const fileExt = optimizedFile.type === 'image/webp' ? 'webp' : 
+                  optimizedFile.type === 'image/jpeg' ? 'jpg' : 
+                  file.name.split('.').pop();
   
   // Sanitizar o label removendo caracteres especiais
   const sanitizedLabel = label
@@ -276,9 +310,10 @@ export async function uploadInspectionPhoto(
 
   const { error: uploadError } = await supabase.storage
     .from('inspection-photos')
-    .upload(filePath, file, {
-      cacheControl: '3600',
-      upsert: true
+    .upload(filePath, optimizedFile, {
+      cacheControl: '31536000', // 1 ano de cache
+      upsert: true,
+      contentType: optimizedFile.type,
     });
 
   if (uploadError) throw uploadError;

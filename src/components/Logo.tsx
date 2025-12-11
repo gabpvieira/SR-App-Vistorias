@@ -25,6 +25,9 @@ export function Logo({ size = 'md', showText = true, className }: LogoProps) {
         src="/logo SR.png" 
         alt="SR Caminhões Logo" 
         className={cn('object-contain', logoSizes[size])}
+        loading="eager"
+        decoding="async"
+        fetchPriority="high"
       />
       {showText && (
         <div className="flex flex-col">

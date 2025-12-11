@@ -3,9 +3,16 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { Helmet } from 'react-helmet-async';
 import { Shield, CheckCircle2, FileCheck, UserCircle } from 'lucide-react';
+import { useEffect } from 'react';
+import { preloadCriticalImages } from '@/lib/image-cache-manager';
 
 export default function Landing() {
   const { isAuthenticated, isLoading } = useAuth();
+
+  // Precarregar imagens críticas da landing page
+  useEffect(() => {
+    preloadCriticalImages();
+  }, []);
 
   // Mostrar loading enquanto verifica sessão
   if (isLoading) {
@@ -56,6 +63,9 @@ export default function Landing() {
                       src="/logo SR.png" 
                       alt="SR Caminhões" 
                       className="h-24 md:h-32 object-contain"
+                      loading="eager"
+                      decoding="async"
+                      fetchPriority="high"
                     />
                   </div>
 
@@ -87,6 +97,8 @@ export default function Landing() {
                     src="/MOCKUP-LP.png" 
                     alt="SR Caminhões - Sistema de Vistorias" 
                     className="w-full h-auto object-contain animate-fade-in"
+                    loading="lazy"
+                    decoding="async"
                   />
                 </div>
 
@@ -144,6 +156,8 @@ export default function Landing() {
                     src="/MOCKUP-LP.png" 
                     alt="SR Caminhões - Sistema de Vistorias" 
                     className="w-full h-auto object-contain animate-fade-in"
+                    loading="lazy"
+                    decoding="async"
                   />
                 </div>
               </div>
