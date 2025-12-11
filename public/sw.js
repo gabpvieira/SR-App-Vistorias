@@ -1,19 +1,12 @@
 /**
  * Service Worker - SR Vistorias PWA
- * 
- * Este SW implementa:
- * - Precache de assets estáticos
- * - Network First para dados/API
- * - Cache First para assets
- * - Suporte offline
- * - Push notifications
- * - Background sync
+ * Versão otimizada para performance de imagens
  */
 
-const CACHE_NAME = 'sr-vistorias-v4';
+const CACHE_NAME = 'sr-vistorias-v5';
 const OFFLINE_URL = '/offline.html';
 
-// Assets para precache
+// Assets estáticos para precache (apenas arquivos locais essenciais)
 const PRECACHE_URLS = [
   '/',
   '/index.html',
@@ -24,206 +17,149 @@ const PRECACHE_URLS = [
   '/icon-512.png'
 ];
 
-// URLs que NUNCA devem ser cacheadas
-const NEVER_CACHE = [
-  'supabase.co',
-  'supabase.in',
-  '/auth/',
-  '/rest/',
-  '/storage/',
-  '/realtime/',
-  '/functions/'
-];
-
-// Verificar se URL deve ser ignorada
-function shouldSkipCache(url) {
-  return NEVER_CACHE.some(pattern => url.includes(pattern));
+/**
+ * Verifica se a URL deve ser completamente ignorada pelo SW
+ * Retorna true para URLs que NUNCA devem ser interceptadas
+ */
+function shouldBypass(url) {
+  // Ignorar todas as URLs do Supabase (API, Storage, Auth, etc.)
+  if (url.includes('supabase.co') || url.includes('supabase.in')) {
+    return true;
+  }
+  
+  // Ignorar outras APIs externas
+  if (url.includes('/api/') || url.includes('/rest/') || url.includes('/auth/')) {
+    return true;
+  }
+  
+  return false;
 }
 
-// INSTALL - Precache assets
-self.addEventListener('install', (event) => {
-  console.log('[SW] Installing...');
+/**
+ * Verifica se é um asset estático local que pode ser cacheado
+ */
+function isStaticAsset(url, origin) {
+  const urlObj = new URL(url);
   
+  // Apenas assets do mesmo origin
+  if (urlObj.origin !== origin) {
+    return false;
+  }
+  
+  // Apenas arquivos estáticos (JS, CSS, fontes, ícones locais)
+  const staticExtensions = ['.js', '.css', '.woff', '.woff2', '.ttf', '.ico'];
+  return staticExtensions.some(ext => url.includes(ext));
+}
+
+// INSTALL
+self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('[SW] Precaching assets');
-        return cache.addAll(PRECACHE_URLS);
-      })
-      .then(() => {
-        console.log('[SW] Skip waiting');
-        return self.skipWaiting();
-      })
-      .catch((error) => {
-        console.error('[SW] Install failed:', error);
-      })
+      .then(cache => cache.addAll(PRECACHE_URLS))
+      .then(() => self.skipWaiting())
+      .catch(err => console.error('[SW] Install error:', err))
   );
 });
 
-// ACTIVATE - Limpar caches antigos
+// ACTIVATE
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating...');
-  
   event.waitUntil(
     caches.keys()
-      .then((cacheNames) => {
-        return Promise.all(
-          cacheNames
-            .filter((name) => name !== CACHE_NAME)
-            .map((name) => {
-              console.log('[SW] Deleting old cache:', name);
-              return caches.delete(name);
-            })
-        );
-      })
-      .then(() => {
-        console.log('[SW] Claiming clients');
-        return self.clients.claim();
-      })
+      .then(names => Promise.all(
+        names
+          .filter(name => name !== CACHE_NAME)
+          .map(name => caches.delete(name))
+      ))
+      .then(() => self.clients.claim())
   );
 });
 
-// FETCH - Interceptar requisições
+// FETCH - Estratégia simplificada
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = request.url;
   
-  // NUNCA interceptar Supabase/API - deixar passar direto (GET, POST, PUT, DELETE)
-  if (shouldSkipCache(url)) {
-    // Não chamar event.respondWith() - deixa o navegador lidar normalmente
-    return;
+  // 1. BYPASS: Nunca interceptar Supabase ou APIs externas
+  if (shouldBypass(url)) {
+    return; // Deixa o navegador lidar diretamente
   }
   
-  // Ignorar requisições não-GET para cache
+  // 2. Ignorar requisições não-GET
   if (request.method !== 'GET') {
     return;
   }
   
-  // Ignorar extensões de navegador
-  if (url.startsWith('chrome-extension://') || 
-      url.startsWith('moz-extension://')) {
+  // 3. Ignorar extensões de navegador
+  if (url.startsWith('chrome-extension://') || url.startsWith('moz-extension://')) {
     return;
   }
   
-  // Apenas cachear assets do mesmo origin
-  const requestUrl = new URL(url);
-  if (requestUrl.origin !== self.location.origin) {
+  // 4. Para navegação (HTML), usar Network First
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
+        .catch(() => caches.match('/index.html'))
+    );
     return;
   }
   
-  // Estratégia: Network First com fallback para cache
-  event.respondWith(
-    fetch(request)
-      .then((response) => {
-        // Cachear resposta válida
-        if (response && response.status === 200) {
-          const responseClone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(request, responseClone);
+  // 5. Para assets estáticos locais, usar Cache First
+  if (isStaticAsset(url, self.location.origin)) {
+    event.respondWith(
+      caches.match(request)
+        .then(cached => {
+          if (cached) return cached;
+          
+          return fetch(request).then(response => {
+            if (response && response.status === 200) {
+              const clone = response.clone();
+              caches.open(CACHE_NAME).then(cache => cache.put(request, clone));
+            }
+            return response;
           });
-        }
-        return response;
-      })
-      .catch(() => {
-        // Fallback para cache
-        return caches.match(request).then((cachedResponse) => {
-          if (cachedResponse) {
-            return cachedResponse;
-          }
-          
-          // Para navegação, retornar index.html (SPA)
-          if (request.mode === 'navigate') {
-            return caches.match('/index.html');
-          }
-          
-          // Página offline como último recurso
-          return caches.match(OFFLINE_URL);
-        });
-      })
-  );
+        })
+    );
+    return;
+  }
+  
+  // 6. Para todo o resto (imagens externas, etc.), NÃO interceptar
+  // Deixa o navegador lidar diretamente para máxima performance
 });
 
-// MESSAGE - Comunicação com o cliente
+// MESSAGE
 self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
+  if (event.data?.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
 });
 
-// PUSH - Notificações push
+// PUSH
 self.addEventListener('push', (event) => {
-  console.log('[SW] Push received');
-  
-  let data = { title: 'SR Vistorias', body: 'Nova notificação' };
-  
-  if (event.data) {
-    try {
-      data = event.data.json();
-    } catch (e) {
-      data.body = event.data.text();
-    }
-  }
-  
-  const options = {
-    body: data.body,
-    icon: '/icon-192.png',
-    badge: '/icon-192.png',
-    vibrate: [100, 50, 100],
-    data: {
-      url: data.url || '/'
-    }
-  };
+  const data = event.data?.json() || { title: 'SR Vistorias', body: 'Nova notificação' };
   
   event.waitUntil(
-    self.registration.showNotification(data.title, options)
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: '/icon-192.png',
+      badge: '/icon-192.png',
+      data: { url: data.url || '/' }
+    })
   );
 });
 
-// NOTIFICATION CLICK - Abrir app
+// NOTIFICATION CLICK
 self.addEventListener('notificationclick', (event) => {
-  console.log('[SW] Notification clicked');
-  
   event.notification.close();
-  
-  const urlToOpen = event.notification.data?.url || '/';
   
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
-      .then((clientList) => {
-        // Focar janela existente
+      .then(clientList => {
         for (const client of clientList) {
-          if (client.url.includes(self.location.origin) && 'focus' in client) {
-            return client.focus();
-          }
+          if ('focus' in client) return client.focus();
         }
-        // Abrir nova janela
-        return clients.openWindow(urlToOpen);
+        return clients.openWindow(event.notification.data?.url || '/');
       })
   );
 });
 
-// SYNC - Background sync
-self.addEventListener('sync', (event) => {
-  console.log('[SW] Background sync:', event.tag);
-  
-  if (event.tag === 'sync-data') {
-    event.waitUntil(
-      // Implementar sincronização de dados pendentes
-      Promise.resolve()
-    );
-  }
-});
-
-// PERIODIC SYNC - Sincronização periódica
-self.addEventListener('periodicsync', (event) => {
-  console.log('[SW] Periodic sync:', event.tag);
-  
-  if (event.tag === 'update-content') {
-    event.waitUntil(
-      // Atualizar conteúdo em background
-      Promise.resolve()
-    );
-  }
-});
-
-console.log('[SW] Service Worker loaded');
+console.log('[SW] Service Worker v5 loaded - Optimized for image performance');
