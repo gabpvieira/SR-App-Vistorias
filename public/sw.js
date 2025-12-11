@@ -10,7 +10,7 @@
  * - Background sync
  */
 
-const CACHE_NAME = 'sr-vistorias-v3';
+const CACHE_NAME = 'sr-vistorias-v4';
 const OFFLINE_URL = '/offline.html';
 
 // Assets para precache
@@ -88,19 +88,26 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = request.url;
   
-  // Ignorar requisições não-GET
-  if (request.method !== 'GET') {
+  // NUNCA interceptar Supabase/API - deixar passar direto (GET, POST, PUT, DELETE)
+  if (shouldSkipCache(url)) {
+    // Não chamar event.respondWith() - deixa o navegador lidar normalmente
     return;
   }
   
-  // NUNCA cachear Supabase/API
-  if (shouldSkipCache(url)) {
+  // Ignorar requisições não-GET para cache
+  if (request.method !== 'GET') {
     return;
   }
   
   // Ignorar extensões de navegador
   if (url.startsWith('chrome-extension://') || 
       url.startsWith('moz-extension://')) {
+    return;
+  }
+  
+  // Apenas cachear assets do mesmo origin
+  const requestUrl = new URL(url);
+  if (requestUrl.origin !== self.location.origin) {
     return;
   }
   
