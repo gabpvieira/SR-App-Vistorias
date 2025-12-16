@@ -635,6 +635,7 @@ export default function GuidedInspection() {
             {/* Feedback da Etapa - Visível em produção */}
             {user && (
               <StepFeedbackInline
+                key={`feedback-${currentStep.id}`}
                 userId={user.id}
                 vistoriaTipo={vehicleModel || 'cavalo'}
                 etapaId={currentStep.id}
