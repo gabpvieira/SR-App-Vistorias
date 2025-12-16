@@ -31,22 +31,24 @@ interface CapturedPhoto {
 const getPhotoConfig = (label: string | undefined) => {
   const lowerLabel = label?.toLowerCase() || '';
   
+  // Pneus Dianteiros - 2 fotos (1 de cada lado)
   if (lowerLabel.includes('pneus dianteiros')) {
     return { min: 2, max: 2, isMultiple: true };
   }
+  // Pneus Traseiros - 4 fotos (2 de cada lado)
   if (lowerLabel.includes('pneus traseiros')) {
-    return { min: 6, max: 6, isMultiple: true };
+    return { min: 4, max: 4, isMultiple: true };
   }
-  if (lowerLabel.includes('interna lado motorista') && !lowerLabel.includes('cabine')) {
-    return { min: 2, max: 2, isMultiple: true };
-  }
+  // Interna Lado Passageiro (+ Plaqueta) - 2 fotos
   if (lowerLabel.includes('interna lado passageiro')) {
     return { min: 1, max: 2, isMultiple: true };
   }
+  // Detalhes em Observação - até 10 fotos
   if (lowerLabel.includes('detalhes em observação')) {
     return { min: 1, max: 10, isMultiple: true };
   }
   
+  // Todas as outras etapas - foto única
   return { min: 1, max: 1, isMultiple: false };
 };
 
@@ -113,8 +115,21 @@ export default function GuidedInspection() {
   }, [currentStepIndex]);
 
   const currentStep = steps[currentStepIndex];
-  const progress = steps.length > 0 ? ((currentStepIndex + 1) / steps.length) * 100 : 0;
   const isLastStep = currentStepIndex === steps.length - 1;
+  
+  // Calcular etapas completas (com fotos suficientes)
+  const completedStepsCount = steps.reduce((count, step) => {
+    const stepConfig = getPhotoConfig(step.label);
+    if (stepConfig.isMultiple) {
+      const stepPhotos = multiplePhotos.get(step.id) || [];
+      return stepPhotos.length >= stepConfig.min ? count + 1 : count;
+    } else {
+      return photos.has(step.id) ? count + 1 : count;
+    }
+  }, 0);
+  
+  // Progresso baseado em etapas completas
+  const progress = steps.length > 0 ? (completedStepsCount / steps.length) * 100 : 0;
   
   // Configuração de fotos da etapa atual
   const photoConfig = getPhotoConfig(currentStep?.label);
@@ -649,25 +664,7 @@ export default function GuidedInspection() {
           {/* Summary */}
           <div className="mt-6 p-4 bg-muted rounded-lg">
             <p className="text-sm text-muted-foreground text-center">
-              {(() => {
-                // Contar etapas completas (considerando múltiplas fotos)
-                let completedSteps = 0;
-                steps.forEach(step => {
-                  const stepConfig = getPhotoConfig(step.label);
-                  
-                  if (stepConfig.isMultiple) {
-                    const stepPhotos = multiplePhotos.get(step.id) || [];
-                    if (stepPhotos.length >= stepConfig.min) {
-                      completedSteps++;
-                    }
-                  } else {
-                    if (photos.has(step.id)) {
-                      completedSteps++;
-                    }
-                  }
-                });
-                return completedSteps;
-              })()} de {steps.length} etapas concluídas
+              {completedStepsCount} de {steps.length} etapas concluídas
             </p>
           </div>
         </main>

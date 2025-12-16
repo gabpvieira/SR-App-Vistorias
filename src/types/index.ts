@@ -38,3 +38,16 @@ export {
   StorageQuotaError,
   InvalidFormatError
 } from '../lib/photo-service';
+
+// Feedback types
+export type {
+  FeatureFeedback,
+  CreateFeedbackInput,
+  UpdateFeedbackInput,
+  FeedbackFilters,
+  FeedbackStats,
+  FeedbackStatus,
+  FeatureType,
+  FeedbackAmbiente,
+  VistoriaTipo
+} from './feedback';

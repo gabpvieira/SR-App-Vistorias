@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Filter, Plus, X, FileText, BarChart3, Users as UsersIcon } from 'lucide-react';
+import { Search, Filter, Plus, X, FileText, BarChart3, Users as UsersIcon, MessageSquareText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -420,7 +420,7 @@ export default function Dashboard() {
           {/* Tabs for Desktop - Hidden on Mobile */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="hidden md:block">
             <div className="flex items-center justify-between mb-6">
-              <TabsList className="grid w-auto grid-cols-3">
+              <TabsList className="grid w-auto grid-cols-4">
                 <TabsTrigger value="vistorias" className="gap-2">
                   <FileText className="h-4 w-4" />
                   Vistorias
@@ -432,6 +432,10 @@ export default function Dashboard() {
                 <TabsTrigger value="usuarios" className="gap-2">
                   <UsersIcon className="h-4 w-4" />
                   Usuários
+                </TabsTrigger>
+                <TabsTrigger value="feedback" className="gap-2">
+                  <MessageSquareText className="h-4 w-4" />
+                  Feedback
                 </TabsTrigger>
               </TabsList>
 
@@ -742,6 +746,27 @@ export default function Dashboard() {
                 </div>
               )}
             </TabsContent>
+
+            {/* Feedback Tab */}
+            <TabsContent value="feedback" className="mt-0">
+              <div className="mb-6">
+                <h2 className="text-xl font-semibold">Painel de Feedback</h2>
+                <p className="text-sm text-muted-foreground">Visualize feedbacks de clientes sobre etapas de vistoria</p>
+              </div>
+              
+              <div className="bg-card border border-border rounded-lg p-8 text-center">
+                <MessageSquareText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-medium mb-2">Painel de Feedback Completo</h3>
+                <p className="text-muted-foreground mb-4">
+                  Acesse o painel completo para visualizar todos os feedbacks, filtrar por tipo de vistoria e status.
+                </p>
+                <Button asChild>
+                  <Link to="/feedback">
+                    Abrir Painel de Feedback
+                  </Link>
+                </Button>
+              </div>
+            </TabsContent>
           </Tabs>
 
           {/* Mobile View - Show tabs as buttons */}
@@ -766,7 +791,7 @@ export default function Dashboard() {
               )}
             </div>
             
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-4 gap-2">
               <button
                 onClick={() => setActiveTab('vistorias')}
                 className={`flex flex-col items-center gap-2 p-3 rounded-lg border transition-colors ${
@@ -801,6 +826,18 @@ export default function Dashboard() {
               >
                 <UsersIcon className="h-5 w-5" />
                 <span className="text-xs font-medium">Usuários</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('feedback')}
+                className={`flex flex-col items-center gap-2 p-3 rounded-lg border transition-colors ${
+                  activeTab === 'feedback'
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'bg-card border-border hover:bg-muted/50'
+                }`}
+              >
+                <MessageSquareText className="h-5 w-5" />
+                <span className="text-xs font-medium">Feedback</span>
               </button>
             </div>
 
@@ -1048,6 +1085,28 @@ export default function Dashboard() {
                       ))}
                     </div>
                   )}
+                </div>
+              )}
+
+              {activeTab === 'feedback' && (
+                <div className="space-y-4">
+                  <div>
+                    <h2 className="text-lg font-semibold">Feedback</h2>
+                    <p className="text-sm text-muted-foreground">Feedbacks de clientes</p>
+                  </div>
+                  
+                  <div className="bg-card border border-border rounded-lg p-6 text-center">
+                    <MessageSquareText className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
+                    <h3 className="font-medium mb-2">Painel de Feedback</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Acesse o painel completo para visualizar todos os feedbacks.
+                    </p>
+                    <Button asChild size="sm">
+                      <Link to="/feedback">
+                        Abrir Painel
+                      </Link>
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>

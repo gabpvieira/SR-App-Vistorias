@@ -20,6 +20,7 @@ import Profile from "./pages/Profile";
 import UserManagement from "./pages/UserManagement";
 import CreateUser from "./pages/CreateUser";
 import Performance from "./pages/Performance";
+import FeedbackPanel from "./pages/FeedbackPanel";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -129,6 +130,14 @@ const App = () => (
                   element={
                     <ProtectedRoute>
                       <Performance />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/feedback"
+                  element={
+                    <ProtectedRoute>
+                      <FeedbackPanel />
                     </ProtectedRoute>
                   }
                 />

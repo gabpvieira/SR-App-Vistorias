@@ -275,3 +275,61 @@ ALTER TABLE inspection_comment_likes ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Allow all operations on inspection_comment_likes" ON inspection_comment_likes
   FOR ALL USING (true) WITH CHECK (true);
+
+
+-- =====================================================
+-- FEATURE FEEDBACK TABLE (Sistema de Feedback em Produção)
+-- =====================================================
+-- Permite que clientes avaliem etapas de vistoria sem afetar dados reais
+
+CREATE TABLE IF NOT EXISTS feature_feedback (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  
+  -- Identificação da funcionalidade/etapa
+  feature_type TEXT NOT NULL CHECK (feature_type IN ('vistoria_etapa', 'funcionalidade_geral', 'interface', 'fluxo')),
+  vistoria_tipo TEXT CHECK (vistoria_tipo IN ('cavalo', 'rodotrem_basculante', 'rodotrem_graneleiro', 'livre', 'troca', 'manutencao')),
+  etapa_id TEXT,
+  etapa_label TEXT,
+  
+  -- Status do feedback
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('approved', 'rejected', 'hidden', 'pending')),
+  
+  -- Comentário opcional
+  comentario TEXT,
+  
+  -- Ambiente onde foi criado
+  ambiente TEXT NOT NULL DEFAULT 'production' CHECK (ambiente IN ('production', 'development')),
+  
+  -- Metadados
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  
+  -- Constraint para evitar duplicatas
+  UNIQUE(user_id, feature_type, vistoria_tipo, etapa_id)
+);
+
+-- Índices para performance
+CREATE INDEX IF NOT EXISTS idx_feature_feedback_user_id ON feature_feedback(user_id);
+CREATE INDEX IF NOT EXISTS idx_feature_feedback_vistoria_tipo ON feature_feedback(vistoria_tipo);
+CREATE INDEX IF NOT EXISTS idx_feature_feedback_status ON feature_feedback(status);
+CREATE INDEX IF NOT EXISTS idx_feature_feedback_ambiente ON feature_feedback(ambiente);
+CREATE INDEX IF NOT EXISTS idx_feature_feedback_created_at ON feature_feedback(created_at DESC);
+
+-- RLS
+ALTER TABLE feature_feedback ENABLE ROW LEVEL SECURITY;
+
+-- Políticas de segurança
+CREATE POLICY "Users can view own feedback" ON feature_feedback
+  FOR SELECT USING (auth.uid()::text = user_id::text);
+
+CREATE POLICY "Users can insert own feedback" ON feature_feedback
+  FOR INSERT WITH CHECK (auth.uid()::text = user_id::text);
+
+CREATE POLICY "Users can update own feedback" ON feature_feedback
+  FOR UPDATE USING (auth.uid()::text = user_id::text);
+
+CREATE POLICY "Managers can view all feedback" ON feature_feedback
+  FOR SELECT USING (EXISTS (
+    SELECT 1 FROM users WHERE id = auth.uid() AND role = 'gerente'
+  ));
