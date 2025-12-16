@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Header } from '@/components/Header';
 import { Progress } from '@/components/ui/progress';
 import { WatermarkCameraModal } from '@/components/WatermarkCameraModal';
+import { StepFeedbackInline } from '@/components/StepFeedbackInline';
 import { useAuth } from '@/contexts/AuthContext';
 import { useInspections } from '@/contexts/InspectionContext';
 import { getStepsByVehicleModel } from '@/lib/supabase-queries';
@@ -629,6 +630,17 @@ export default function GuidedInspection() {
                   Foto capturada com sucesso
                 </span>
               </div>
+            )}
+
+            {/* Feedback da Etapa - Visível em produção */}
+            {user && (
+              <StepFeedbackInline
+                userId={user.id}
+                vistoriaTipo={vehicleModel || 'cavalo'}
+                etapaId={currentStep.id}
+                etapaLabel={currentStep.label}
+                stepOrder={currentStep.step_order}
+              />
             )}
           </div>
 
